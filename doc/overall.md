@@ -2,6 +2,7 @@
 #### cm_order_update
 
 Request:
+
 |  Parameter   | type | required | description | 
 | ------ | --------- |  --------- | --------- | 
 | oid | int | Y    | 订单id    | 
@@ -15,6 +16,7 @@ Void
 #### cm_driver_update
 
 Request:
+
 |  Parameter   | type | required | description | 
 | ------ | --------- |  --------- | --------- | 
 | driver_id | int | Y  |  司机id    | 
@@ -31,6 +33,7 @@ Void
 #### cm_get_schedule
 
 Request:
+
 |  Parameter   | type | required | description | 
 | ------ | --------- |  --------- | --------- | 
 | driver_id | int | Y  |  司机id    | 
@@ -39,8 +42,15 @@ Function:
 获取当前调度表
 
 Return:
+
 |  Parameter   | type | required | description | 
 | ------ | --------- |  --------- | --------- | 
 | driver_id | int | Y  |  司机id    | 
 | tasks |  array | Y  |      | 
+
+|  tasks  | type | required | description | 
+| ------ | --------- |  --------- | --------- | 
+| oid | int | Y  |  司机id    | 
+| type |  string | Y  | "pickup" or "delivery"   | 
+
 
