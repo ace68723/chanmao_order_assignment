@@ -43,14 +43,20 @@ Function:
 
 Return:
 
-|  Parameter   | type | required | description | 
+|  Schedule   | type | required | description | 
 | ------ | --------- |  --------- | --------- | 
 | driver_id | int | Y  |  司机id    | 
 | tasks |  array | Y  |      | 
 
 |  tasks  | type | required | description | 
 | ------ | --------- |  --------- | --------- | 
-| oid | int | Y  |  司机id    | 
-| type |  string | Y  | "pickup" or "delivery"   | 
+| oid | int | Y  |  order id    | 
+| type |  string | Y  | "pickup" or "delivery"   |
+| addr |  string | Y  |    |
+| arriveTime |  int | Y  |    |
+| completeTime |  int | Y  |    |
+| readyTime |  int | Y  |    |
+| deadlineTime |  int | Y  |    |
+| reward |  double | Y  |    |
 
 
