@@ -19,6 +19,8 @@ class ScheduleController extends Controller
     public function __construct()
     {
         $this->consts['REQUEST_PARAS']['reload'] = [
+            'area'=>['is_int',],
+            'required'=>true,
         ];
         $this->consts['REQUEST_PARAS']['get_schedule'] = [
             'driver_id'=>[

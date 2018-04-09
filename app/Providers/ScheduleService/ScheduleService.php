@@ -58,7 +58,7 @@ class ScheduleService{
             Log::debug("unknown area code:$area");
             return [];
         }
-        $data = do_curl('https://www.chanmao.ca/index.php?r=MobAly10/DriverLoc', $data, 'GET');
+        $data = do_curl('https://www.chanmao.ca/index.php?r=MobAly10/DriverLoc', 'GET');
         $drivers = $data['drivers']??[];
         $ret = [];
         foreach($drivers as $dr)
