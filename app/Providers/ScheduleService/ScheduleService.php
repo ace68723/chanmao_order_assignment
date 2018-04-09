@@ -1,6 +1,7 @@
 <?php
 namespace App\Providers\ScheduleService;
 
+require_once  __DIR__."/lib/mycurl.php";
 use Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
@@ -21,38 +22,8 @@ class ScheduleService{
     }
     private function getDrivers() {
         $data = [];
-        $res = $this->do_curl('https://www.chanmao.ca/index.php?r=MobAly10/DriverLoc', $data, 'GET');
+        $res = do_curl('https://www.chanmao.ca/index.php?r=MobAly10/DriverLoc', $data, 'GET');
         return $data;
-    }
-    private function do_curl($url, &$data, $method, $timeout=30, $payload=null){
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_HEADER, FALSE);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-        if (strtoupper($method) == 'POST') {
-            //post提交方式
-            curl_setopt($ch, CURLOPT_POST, TRUE);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
-        }
-        $data = curl_exec($ch);
-        if($data !== false){
-            $ret_code = curl_getinfo($ch);
-            if ($ret_code['http_code'] != 200) {
-                Log::debug("got http_code:".$ret_code['http_code']);
-                return false;
-            }
-            curl_close($ch);
-            $data = json_decode($data, true);
-            return true;
-        }
-        else {
-            $error = curl_errno($ch);
-            curl_close($ch);
-            Log::debug("curl error no: $error");
-        }
-        return false;
     }
     public function reload() {
         $orders = $this->getOrders();

@@ -202,9 +202,8 @@ headerStr;
         return $ret;
     }
     public function parse_parameters(Request $request, $api_name, $callerInfoObj = null) {
-        $api_paras_def =  empty($api_name) ? $this->consts['REQUEST_PARAS'] :
-            $this->consts['REQUEST_PARAS'][$api_name];
-        if (empty($api_paras_def))
+        $api_paras_def = $this->consts['REQUEST_PARAS'][$api_name] ?? null;
+        if (is_null($api_paras_def))
             throw new CmException('SYSTEM_ERROR', 'EMPTY_API_DEFINITION for '.$api_name);
         $la_paras = $request->json()->all();
         try {
