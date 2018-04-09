@@ -58,6 +58,7 @@ class ScheduleService{
             Log::debug("unknown area code:$area");
             return [];
         }
+        $timer = -time(true);
         $data = do_curl('https://www.chanmao.ca/index.php?r=MobAly10/DriverLoc', 'GET');
         $drivers = $data['drivers']??[];
         $ret = [];
@@ -65,6 +66,7 @@ class ScheduleService{
             if ($dr['area'] == $this->consts['AREA'][$area]){
                 $ret[] = $dr;
             }
+        $timer += time(true);
         Log::debug("got ".count($ret)." drivers for area $area". " takes:".$timer." secs");
         return $ret;
     }
