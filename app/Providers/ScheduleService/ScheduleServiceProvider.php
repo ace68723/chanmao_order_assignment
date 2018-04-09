@@ -13,7 +13,7 @@ class ScheduleServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->singleton('schedule_service', function ($app) {
+        $this->app->singleton('cmoa_schedule_service', function ($app) {
             return new ScheduleService(); // You can even put some params here
         });
     }

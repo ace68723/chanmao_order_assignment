@@ -18,6 +18,7 @@ class CmException extends Exception
     const INVALID_PARAMETER     = 30002;
     const INVALID_PARAMETER_NUM = 30000;
 
+    const SYSTEM_ERROR          = 50001;
     /*business errors for mcfpay
     const CHANNEL_NOT_ACTIVATED = 40020;
     const CHANNEL_NOT_SUPPORTED = 40021;

@@ -15,6 +15,15 @@ $router->get('/', function () use ($router) {
     return $router->app->version();
 });
 
+$router->group(['prefix'=>'api/v1/schedule',], function ($router)
+{
+    $api_names = [
+        'reload',
+    ];
+    foreach($api_names as $api_name) {
+        $router->post('/'.$api_name.'/', ['uses'=>'ScheduleController@'.$api_name]);
+    }
+});
 /*
 $router->group(['prefix'=>'api/v1/web','middleware'=>['throttle:60,1','auth:custom_api']], function ($router)
 {

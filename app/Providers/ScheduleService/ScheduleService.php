@@ -13,12 +13,52 @@ class ScheduleService{
     public function __construct()
     {
         $this->consts = array();
-        $this->consts['OUR_NAME'] = "MCF";
-        $this->consts['CHANNELS'] = ['WX'=>0x1, 'ALI'=>0x2,'TC'=>0x8000];
-        $this->consts['CHANNELS_REV'] = array_flip($this->consts['CHANNELS']);
-        $this->consts['DEFAULT_PAGESIZE'] = 20;
+        $this->consts['MAXNLOCATIONS'] = 100;
     }
 
+    private function getOrders() {
+        return [];
+    }
+    private function getDrivers() {
+        $data = [];
+        $res = $this->do_curl('https://www.chanmao.ca/index.php?r=MobAly10/DriverLoc', $data, 'GET');
+        return $data;
+    }
+    private function do_curl($url, &$data, $method, $timeout=30, $payload=null){
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_HEADER, FALSE);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        if (strtoupper($method) == 'POST') {
+            //post提交方式
+            curl_setopt($ch, CURLOPT_POST, TRUE);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
+        }
+        $data = curl_exec($ch);
+        if($data !== false){
+            $ret_code = curl_getinfo($ch);
+            if ($ret_code['http_code'] != 200) {
+                Log::debug("got http_code:".$ret_code['http_code']);
+                return false;
+            }
+            curl_close($ch);
+            $data = json_decode($data, true);
+            return true;
+        }
+        else {
+            $error = curl_errno($ch);
+            curl_close($ch);
+            Log::debug("curl error no: $error");
+        }
+        return false;
+    }
+    public function reload() {
+        $orders = $this->getOrders();
+        $drivers = $this->getDrivers();
+        return ['orders'=>$orders, 'drivers'=>$drivers];
+    }
     public function get_today_summary($account_id) {
         $mchinfo = $this->get_merchant_info_by_id($account_id);
         $dt = new \DateTime('now', $this->create_datetimezone($mchinfo['timezone']??null));
