@@ -39,7 +39,7 @@ class ScheduleService{
             ['rl.area','=',0],
             ['rb.area','=',$area],
         ];
-        $res = DB::table('cm_order_base as ob')
+        $sql = DB::table('cm_order_base as ob')
             ->join('cm_rr_base as rb', 'rb.rid','=','ob.rid')
             ->join('cm_rr_loc as rl', 'rl.rid','=','rb.rid')
             ->join('cm_user_address as ua', 'ua.uaid','=','ob.uaid')
@@ -48,7 +48,10 @@ class ScheduleService{
                 'ot.driver_id', 'ot.assign', 'ot.pickup',
                 'rb.area','rl.rr_la as rr_lat', 'rl.rr_lo as rr_lng', 'rb.addr as rr_addr',
                 'ua.addr as user_addr','ua.loc_la as user_lat','ua.loc_lo as user_lng')
-            ->where($whereCond)->get();
+             ->where($whereCond);
+        $sqlStr = $sql->toSql();
+        Log::debug("sql:".$sqlStr);
+        $res = $sql->get();
         $timer += time(true);
         Log::debug("got ".count($res)." orders for area $area". " takes:".$timer." secs");
         return $res;

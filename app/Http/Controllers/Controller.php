@@ -225,9 +225,9 @@ headerStr;
             throw new CmException('PERMISSION_DENIED', [$role,$api_name]);
         return true;
     }
-    public function format_success_ret($data) {
+    public function format_success_ret($data, $bLog=false) {
         //if (env('APP_DEBUG',false))
-        if (true || env('APP_DEBUG',false)) {
+        if (env('APP_DEBUG',false) && $bLog) {
             if (is_string($data)) {
             }
             elseif (is_array($data) && (isset($data[0]) || isset($data['recs']))) {
