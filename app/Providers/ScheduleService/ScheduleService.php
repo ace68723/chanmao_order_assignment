@@ -17,7 +17,7 @@ class ScheduleService{
         $this->consts['MAXNLOCATIONS'] = 100;
         $this->consts['DEADLINE_SEC'] = 60*80; //promised time, from initiate to deliver: 1h20min
         $this->consts['HANDOVER_SEC'] = 60*7; //7 min to hand over to customer
-        $this->consts['PICKUP_SEC'] = 60*5; //7 min to hand over to customer
+        $this->consts['PICKUP_SEC'] = 60*5; //5 min to hand over to customer
         $this->consts['REWARD_ONETIME'] = ['D'=>100,'P'=>0];
         $this->consts['REWARD_PERSEC'] = ['D'=>0.1,'P'=>0];
         $this->consts['PENALTY_ONETIME'] = ['D'=>0,'P'=>0];
@@ -64,7 +64,7 @@ class ScheduleService{
                 'rb.area','rl.rr_la as rr_lat', 'rl.rr_lo as rr_lng', 'rb.addr as rr_addr',
                 'ua.addr as user_addr','ua.loc_la as user_lat','ua.loc_lo as user_lng')
              ->where($whereCond);
-        Log::debug("sql:". $sql->toSql());
+        //Log::debug("sql:". $sql->toSql());
         $res = $sql->get();
         $timer += microtime(true);
         Log::debug("got ".count($res)." orders for area ".$area. " takes:".$timer." secs");
@@ -154,22 +154,35 @@ class ScheduleService{
             $driver['valid_to'] = intval($driver['valid_to']);
             $driver['timestamp'] = intval($driver['timestamp']);
             if ($driver['timestamp'] == 1) continue;
-            if ($curTime - $driver['timestamp'] > $this->consts['DRIVER_LIVE_SEC']) continue;
-            if ($curTime >= $driver['valid_to']) continue;
+            if ($curTime - $driver['timestamp'] > $this->consts['DRIVER_LIVE_SEC']) {
+                Log::debug("ignore driver ".$driver['driver_id']." because of lost position");
+                continue;
+            }
+            if ($curTime >= $driver['valid_to']) {
+                Log::debug("ignore driver ".$driver['driver_id']." because of off work");
+                continue;
+            }
             //if ($curTime < $driver['valid_from']) continue; //??
             $thisworkload = ($workload[$driver['driver_id']]??0);
+            $otherWorkload = 0;
             if ($driver['workload'] != $thisworkload) {
                 Log::debug('driver '.$driver['driver_id'].' workload mismatch:'.$driver['workload'].' find orders:'.$thisworkload);
+                $otherWorkload = max(0, $driver['workload']-$thisworkload);
+            }
+            $maxNOrder = ($driver['maxNOrder']??5)-$otherWorkload;
+            if ($maxNOrder <= 0) {
+                Log::debug("ignore driver ".$driver['driver_id']." because of other workload");
+                continue;
             }
             $locations['dr'.$driver['driver_id']] = [
-                'lat'=>floatval($driver['lat']),'lng'=>floatval($order['lng']),'addr'=>null,
+                'lat'=>floatval($driver['lat']),'lng'=>floatval($driver['lng']),'addr'=>null,
             ];
-            $available_drivers[] = [
+            $available_drivers[$driver['driver_id']] = [
                 'did'=>$driver['driver_id'],
                 'availableTime'=>max($curTime,$driver['valid_from']),
                 'offTime'=>$driver['valid_to'],
                 'locId'=>'dr'.$driver['driver_id'],
-                'maxNOrder'=>$driver['maxNOrder']??5,
+                'maxNOrder'=>$maxNOrder,
                 'distFactor'=>$driver['distFactor']??1,
                 'pickFactor'=>$driver['pickFactor']??1,
                 'deliFactor'=>$driver['deliFactor']??1,
