@@ -201,9 +201,10 @@ class ScheduleService{
         foreach($available_drivers as $driver) {
             $locIds[$driver['locId']] = 1;
         }
+        Log::debug('tasks:'.json_encode($tIds));
         $tasks = array_where($tasks, function($value, $key) {return isset($tIds[$key]);});
         $filtered_locations = array_only($locations, $locIds);
-        map_service_get_dist($drivers, $tasks);
+        $this->map_service_get_dist($drivers, $tasks);
     }
     private function map_service_get_dist($drivers, $tasks) {
         Log::debug("processed drivers:".json_encode($drivers));
