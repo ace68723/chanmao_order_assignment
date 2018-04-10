@@ -92,8 +92,9 @@ class ScheduleService{
         $locations = [];
         $workload = [];
         foreach($orders as $order) {
+            $order = $order->toArray();
             if (!empty($order['driver_id'])) {
-                $workload[$order['dirver_id']] = 1+($workload['driver_id']??0);
+                $workload[$order['driver_id']] = 1+($workload['driver_id']??0);
             }
             $locations['user'.$order['uaid']] = [
                 'lat'=>$order['user_lat'],'lng'=>$order['user_lng'],'addr'=>$order['user_addr'],
@@ -188,7 +189,7 @@ class ScheduleService{
         }
         $tasks = array_where($tasks, function($value, $key) {return isset($tIds[$key]);});
         $filtered_locations = array_only($locations, $locIds);
-        $list($fLoc, $distMat) = map_service_get_dist($drivers, $tasks);
+        map_service_get_dist($drivers, $tasks);
     }
     private function map_service_get_dist($drivers, $tasks) {
         Log::debug("processed drivers:".json_encode($drivers));
