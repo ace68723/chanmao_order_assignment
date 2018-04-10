@@ -24,6 +24,7 @@ class ScheduleService{
         $this->consts['PENALTY_PERSEC'] = ['D'=>0.1,'P'=>0.01];
         $this->consts['TIMEZONE'] = 'America/Toronto';
         $this->consts['ORDER_LIVE_HOURS'] = 4; //load orders created in the last x hours
+        $this->consts['DRIVER_LIVE_SEC'] = 4*3600; //for how long the driver's location stays usable
         $this->consts['PPTIME'] = [
             'default'=>60*20,
             '< 10' => 60*10,
@@ -92,7 +93,7 @@ class ScheduleService{
         $locations = [];
         $workload = [];
         foreach($orders as $order) {
-            $order = $order->toArray();
+            $order = (array)$order;
             if (!empty($order['driver_id'])) {
                 $workload[$order['driver_id']] = 1+($workload['driver_id']??0);
             }
