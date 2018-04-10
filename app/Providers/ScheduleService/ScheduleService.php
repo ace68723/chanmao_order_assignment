@@ -201,14 +201,14 @@ class ScheduleService{
         foreach($available_drivers as $driver) {
             $locIds[$driver['locId']] = 1;
         }
-        Log::debug('tasks:'.json_encode($tIds));
-        $tasks = array_where($tasks, function($value, $key) {return isset($tIds[$key]);});
-        $filtered_locations = array_only($locations, $locIds);
-        $this->map_service_get_dist($drivers, $tasks);
+        $tasks = array_where($tasks, function($value, $key) use($tIds) {return isset($tIds[$key]);});
+        $locations = array_only($locations, $locIds);
+        $this->map_service_get_dist($available_drivers, $tasks, $locations);
     }
-    private function map_service_get_dist($drivers, $tasks) {
+    private function map_service_get_dist($drivers, $tasks, $locations) {
         Log::debug("processed drivers:".json_encode($drivers));
         Log::debug("processed tasks:".json_encode($tasks));
+        Log::debug("processed locations:".json_encode($locations));
         return [];
     }
     private function fixCurTask(&$drivers, &$tasks) {
