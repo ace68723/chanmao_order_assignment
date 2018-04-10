@@ -94,8 +94,40 @@ class ScheduleService{
         $workload = [];
         foreach($orders as $order) {
             $order = (array)$order;
+            $prevTask = null;
             if (!empty($order['driver_id'])) {
                 $workload[$order['driver_id']] = 1+($workload['driver_id']??0);
+            }
+            if ($order['status'] == 30) {
+                if ($order['pickup'] <= 0) {
+                    Log::debug("empty pickup time for order ".$order['oid']);
+                }
+            }
+            else {
+                if ($order['pickup'] > 0) {
+                    Log::debug("non-empty pickup time for order ".$order['oid']. " with status ". $order['status']);
+                }
+                $pptime = $this->consts['PPTIME'][$order['pptime']]?? $this->consts['PPTIME']['default'];
+                $locations['rr'.$order['rid']] = [
+                    'lat'=>$order['rr_lat'],'lng'=>$order['rr_lng'],'addr'=>$order['rr_addr'],
+                ];
+                $tid = $order['oid']."P";
+                $tasks[$tid] = [
+                    'oid'=>$order['oid'],
+                    'tid'=>$tid,
+                    'locId'=>'rr'.$order['rid'],
+                    'deadline'=>$order['rraction']+$pptime,
+                    'readyTime'=>$order['rraction']+$pptime,
+                    'execTime'=>$this->consts['PICKUP_SEC'],
+                    'did'=>empty($order['driver_id'])?null:$order['driver_id'],
+                    'prevTask'=>null,
+                    'nextTask'=>$order['oid']."D",
+                    'rwdOneTime'=>$this->consts['REWARD_ONETIME']['P'],
+                    'pnlOneTime'=>$this->consts['PENALTY_ONETIME']['P'],
+                    'rwdPerSec'=>$this->consts['REWARD_PERSEC']['P'],
+                    'pnlPerSec'=>$this->consts['PENALTY_PERSEC']['P'],
+                ];
+                $prevTask = $tid;
             }
             $locations['user'.$order['uaid']] = [
                 'lat'=>$order['user_lat'],'lng'=>$order['user_lng'],'addr'=>$order['user_addr'],
@@ -109,43 +141,12 @@ class ScheduleService{
                 'readyTime'=>0,
                 'execTime'=>$this->consts['HANDOVER_SEC'],
                 'did'=>empty($order['driver_id'])?null:$order['driver_id'],
-                'prevTask'=>$order['oid']."P",
+                'prevTask'=>$prevTask,
                 'nextTask'=>null,
                 'rwdOneTime'=>$this->consts['REWARD_ONETIME']['D'],
                 'pnlOneTime'=>$this->consts['PENALTY_ONETIME']['D'],
                 'rwdPerSec'=>$this->consts['REWARD_PERSEC']['D'],
                 'pnlPerSec'=>$this->consts['PENALTY_PERSEC']['D'],
-            ];
-            if ($order['status'] == 30) {
-                if ($order['pickup'] <= 0) {
-                    Log::debug("empty pickup time for order ".$order['oid']);
-                }
-                continue;
-            }
-            else {
-                if ($order['pickup'] > 0) {
-                    Log::debug("non-empty pickup time for order ".$order['oid']. " with status ". $order['status']);
-                }
-            }
-            $pptime = $this->consts['PPTIME'][$order['pptime']]?? $this->consts['PPTIME']['default'];
-            $locations['rr'.$order['rid']] = [
-                'lat'=>$order['rr_lat'],'lng'=>$order['rr_lng'],'addr'=>$order['rr_addr'],
-            ];
-            $tid = $order['oid']."P";
-            $tasks[$tid] = [
-                'oid'=>$order['oid'],
-                'tid'=>$tid,
-                'locId'=>'rr'.$order['rid'],
-                'deadline'=>$order['rraction']+$pptime,
-                'readyTime'=>$order['rraction']+$pptime,
-                'execTime'=>$this->consts['PICKUP_SEC'],
-                'did'=>empty($order['driver_id'])?null:$order['driver_id'],
-                'prevTask'=>null,
-                'nextTask'=>$order['oid']."D",
-                'rwdOneTime'=>$this->consts['REWARD_ONETIME']['P'],
-                'pnlOneTime'=>$this->consts['PENALTY_ONETIME']['P'],
-                'rwdPerSec'=>$this->consts['REWARD_PERSEC']['P'],
-                'pnlPerSec'=>$this->consts['PENALTY_PERSEC']['P'],
             ];
         }
         $available_drivers = [];
@@ -202,8 +203,8 @@ class ScheduleService{
             $locIds[$driver['locId']] = 1;
         }
         $tasks = array_where($tasks, function($value, $key) use($tIds) {return isset($tIds[$key]);});
-        $locations = array_only($locations, $locIds);
-        $this->map_service_get_dist($available_drivers, $tasks, $locations);
+        $locations = array_where($locations, function($value, $key) use($locIds) {return isset($locIds[$key]);});
+        return [$available_drivers, $tasks, $locations];
     }
     private function map_service_get_dist($drivers, $tasks, $locations) {
         Log::debug("processed drivers:".json_encode($drivers));
@@ -220,7 +221,7 @@ class ScheduleService{
     public function reload($area) {
         $orders = $this->getOrders($area);
         $drivers = $this->getDrivers($area);
-        $this->preprocess($orders, $drivers);
+        list($driver_dict, $task_dict, $loc_dict) = $this->preprocess($orders, $drivers);
         return ['orders'=>$orders, 'drivers'=>$drivers];
     }
 
