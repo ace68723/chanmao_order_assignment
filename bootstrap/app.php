@@ -81,6 +81,7 @@ $app->routeMiddleware([
 */
 
 $app->register(App\Providers\ScheduleService\ScheduleServiceProvider::class);
+$app->register(App\Providers\MapService\MapServiceProvider::class);
 $app->register(App\Providers\AuthServiceProvider::class);
 
 $app->register(Illuminate\Redis\RedisServiceProvider::class);

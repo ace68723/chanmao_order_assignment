@@ -225,9 +225,15 @@ class ScheduleService{
         $orders = $this->getOrders($area);
         $drivers = $this->getDrivers($area);
         list($driver_dict, $task_dict, $loc_dict) = $this->preprocess($orders, $drivers);
+        return ['orders'=>$orders, 'drivers'=>$drivers, 'locations'=>$loc_dict];
+    }
+    public function sim($input) {
+        $orders = $input['orders'];
+        $drivers = $input['drivers'];
+        $loc_dict = $input['locations'];
         $map_sp = app()->make('cmoa_map_service');
         $dist_mat = $map_sp->get_dist_mat($loc_dict);
-        return ['orders'=>$orders, 'drivers'=>$drivers, 'locations'=>$loc_dict];
+        return $loc_dict;
     }
 
 }

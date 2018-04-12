@@ -24,6 +24,8 @@ class ScheduleController extends Controller
                 'required'=>true,
             ],
         ];
+        $this->consts['REQUEST_PARAS']['sim'] = [
+        ];
         $this->consts['REQUEST_PARAS']['get_schedule'] = [
             'driver_id'=>[
                 'checker'=>['is_int', ],
@@ -37,6 +39,11 @@ class ScheduleController extends Controller
             throw new CmException('SYSTEM_ERROR', "ERROR SETTING IN API SCHEMA");
     }
 
+    public function sim(Request $request){
+        $sp = app()->make('cmoa_schedule_service');
+        $ret = $sp->sim($request->json()->all());
+        return $this->format_success_ret($ret);
+    }
     public function reload(Request $request){
         $userObj = null;//$request->user('custom_token');
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);

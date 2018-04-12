@@ -21,7 +21,7 @@ class MapService{
     }
     public function toGridIdx($latlng_arr) {
         $ret = $latlng_arr;
-        foreach($i=0; $i<2; $i++) {
+        for($i=0; $i<2; $i++) {
             $ret[$i] = ($ret[i]-$this->consts['CENTER'][$i])*$this->consts['DEG_TO_KM_RATIO'][$i]/$this->consts['GRID_LEN_KM'];
             $ret[$i] = intval(floor($ret[$i]));
         }
@@ -29,7 +29,7 @@ class MapService{
     }
     public function toLatLng($idx_arr) {
         $ret = $idx_arr;
-        foreach($i=0; $i<2; $i++) {
+        for($i=0; $i<2; $i++) {
             $ret[$i] += 0.5;
             $ret[$i] *= $this->consts['GRID_LEN_KM']/$this->consts['DEG_TO_KM_RATIO'][$i];
             $ret[$i] += $this->consts['CENTER'][$i];

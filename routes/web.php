@@ -18,7 +18,7 @@ $router->get('/', function () use ($router) {
 $router->group(['prefix'=>'api/v1/schedule',], function ($router)
 {
     $api_names = [
-        'reload',
+        'reload','sim',
     ];
     foreach($api_names as $api_name) {
         $router->post('/'.$api_name.'/', ['uses'=>'ScheduleController@'.$api_name]);
