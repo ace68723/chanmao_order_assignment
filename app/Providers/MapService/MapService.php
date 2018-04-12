@@ -5,6 +5,7 @@ use Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Http\Request;
+use App\Exceptions\CmException;
 
 class MapService{
 
@@ -14,9 +15,9 @@ class MapService{
     {
         $this->consts = array();
         $this->consts['MAXNLOCATIONS'] = 100;
-        $this->consts['CENTER'] = [45.78,-79.28];
+        $this->consts['CENTER'] = [43.78,-79.28];
         //$this->consts['DEG_TO_M_RATIO'] = ['LAT'=>1,'LNG'=>1.385037];//1.0/cos($this->consts['CENTER']['LAT']/180.0*3.14159)];
-        $this->consts['DEG_TO_KM_RATIO'] = [111.1949,154.0092];//6371*1.0/180*3.14159
+        $this->consts['DEG_TO_KM_RATIO'] = [111.1949,154.0091];//6371*1.0/180*3.14159
         $this->consts['GRID_LEN_KM'] = 0.1;
     }
     public function toGridIdx($latlng_arr) {
@@ -46,9 +47,11 @@ class MapService{
     public function get_dist_mat(&$loc_dict) {
         $grid_dict = [];
         foreach($loc_dict as $k=>$loc) {
-            $gridId = implode(',',$this->toGridIdx([$loc['lat'], $loc['lng']]));
-            $latlng = implode(',',$this->toLatLng(explode(',',$gridId)));
+            $grid_idx_arr = $this->toGridIdx([$loc['lat'], $loc['lng']]);
+            $gridId = implode(',', $grid_idx_arr);
+            $latlng = implode(',', $this->toLatLng($grid_idx_arr));
             $loc_dict[$k]['gridId'] = $gridId;
+            $loc_dict[$k]['grid_idx_arr'] = $grid_idx_arr;
             $loc_dict[$k]['adjustLatLng'] = $latlng;
             if (explode('-',$k)[0] == 'dr' && !isset($grid_dict[$gridId]['type'])) {
                 $grid_dict[$gridId]['type'] = 2;
@@ -71,6 +74,23 @@ class MapService{
             $loc_dict[$k]['idx'] = $grid_dict[$v['gridId']]['idx']?? -1;
         }
         Log::debug("len(origin):".count($origin_loc_arr)." len(dest):".count($dest_loc_arr));
+        $this->dist_approx($origin_loc_arr);
         return [];
+    }
+    private function dist_approx($origin_loc_arr) {
+        $dist_mat_dict = [];
+        $n = min(count($origin_loc_arr), 7);
+        $quota = Redis::get("map:quota");
+        if (is_null($quota)) $quota = 2500;
+        else $quota = intval($quota);
+        if ($n*$n>$quota) {
+            $n = intval(sqrt($quota));
+        }
+        if ($n <= 1) {
+            throw new CmException('SYSTEM_ERROR', "dist_approx");
+        }
+        Redis::setex("map:quota", 24*3600, $quota - $n*$n);
+        Log::debug($quota);
+        return;
     }
 }
