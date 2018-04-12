@@ -15,14 +15,14 @@ class MapService{
         $this->consts = array();
         $this->consts['MAXNLOCATIONS'] = 100;
         $this->consts['CENTER'] = [45.78,-79.28];
-        //$this->consts['DEG_TO_M_RATIO'] = ['LAT'=>1,'LNG'=>1.38503812];//1.0/cos($this->consts['CENTER']['LAT']/180.0*3.14159)];
+        //$this->consts['DEG_TO_M_RATIO'] = ['LAT'=>1,'LNG'=>1.385037];//1.0/cos($this->consts['CENTER']['LAT']/180.0*3.14159)];
         $this->consts['DEG_TO_KM_RATIO'] = [111.1949,154.0092];//6371*1.0/180*3.14159
         $this->consts['GRID_LEN_KM'] = 0.1;
     }
     public function toGridIdx($latlng_arr) {
         $ret = $latlng_arr;
         for($i=0; $i<2; $i++) {
-            $ret[$i] = ($ret[i]-$this->consts['CENTER'][$i])*$this->consts['DEG_TO_KM_RATIO'][$i]/$this->consts['GRID_LEN_KM'];
+            $ret[$i] = ($ret[$i]-$this->consts['CENTER'][$i])*$this->consts['DEG_TO_KM_RATIO'][$i]/$this->consts['GRID_LEN_KM'];
             $ret[$i] = intval(floor($ret[$i]));
         }
         return $ret;
@@ -40,14 +40,16 @@ class MapService{
 
     /*
      * [in] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str}]
-     * [out] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str, 'gridId':str, 'idx':int}]
+     * [out] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str, 'gridId':str, 'idx':int, 'adjustLatLng':string}]
      * return $dist_mat: 2-D double
      */
     public function get_dist_mat(&$loc_dict) {
         $grid_dict = [];
         foreach($loc_dict as $k=>$loc) {
             $gridId = implode(',',$this->toGridIdx([$loc['lat'], $loc['lng']]));
+            $latlng = implode(',',$this->toLatLng(explode(',',$gridId)));
             $loc_dict[$k]['gridId'] = $gridId;
+            $loc_dict[$k]['adjustLatLng'] = $latlng;
             if (explode('-',$k)[0] == 'dr' && !isset($grid_dict[$gridId]['type'])) {
                 $grid_dict[$gridId]['type'] = 2;
             }

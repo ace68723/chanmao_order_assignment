@@ -179,7 +179,7 @@ class ScheduleService{
                 Log::debug("ignore driver ".$driver['driver_id']." because of other workload");
                 continue;
             }
-            $locId = 'dr'.$driver['driver_id'];
+            $locId = 'dr-'.$driver['driver_id'];
             $locations[$locId] = [
                 'lat'=>floatval($driver['lat']),'lng'=>floatval($driver['lng']),'addr'=>null,
             ];
