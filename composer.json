@@ -10,7 +10,7 @@
 	"illuminate/redis": "^5.5",
 	"firebase/php-jwt": "^5.0",
         "vlucas/phpdotenv": "~2.2",
-        "google/apiclient": "^2.0"
+        "finalbytes/google-distance-matrix-api": "dev-master"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",

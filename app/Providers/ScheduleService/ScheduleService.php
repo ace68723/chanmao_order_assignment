@@ -87,6 +87,8 @@ class ScheduleService{
         Log::debug("got ".count($ret)." drivers for area ".$area. " takes:".$timer." secs");
         return $ret;
     }
+
+    // check consistency, remove unnecessary tasks/driver/locations, convert to the input for module
     private function preprocess($orders, $drivers) {
         $curTime = time();
         $tasks = [];
@@ -108,14 +110,15 @@ class ScheduleService{
                     Log::debug("non-empty pickup time for order ".$order['oid']. " with status ". $order['status']);
                 }
                 $pptime = $this->consts['PPTIME'][$order['pptime']]?? $this->consts['PPTIME']['default'];
-                $locations['rr'.$order['rid']] = [
+                $locId = 'rr-'.$order['rid'];
+                $locations[$locId] = [
                     'lat'=>$order['rr_lat'],'lng'=>$order['rr_lng'],'addr'=>$order['rr_addr'],
                 ];
                 $tid = $order['oid']."P";
                 $tasks[$tid] = [
                     'oid'=>$order['oid'],
                     'tid'=>$tid,
-                    'locId'=>'rr'.$order['rid'],
+                    'locId'=>$locId,
                     'deadline'=>$order['rraction']+$pptime,
                     'readyTime'=>$order['rraction']+$pptime,
                     'execTime'=>$this->consts['PICKUP_SEC'],
@@ -129,14 +132,15 @@ class ScheduleService{
                 ];
                 $prevTask = $tid;
             }
-            $locations['user'.$order['uaid']] = [
+            $locId = 'user-'.$order['uaid'];
+            $locations[$locId] = [
                 'lat'=>$order['user_lat'],'lng'=>$order['user_lng'],'addr'=>$order['user_addr'],
             ];
             $tid = $order['oid']."D";
             $tasks[$tid] = [
                 'oid'=>$order['oid'],
                 'tid'=>$tid,
-                'locId'=>'user'.$order['uaid'],
+                'locId'=>$locId,
                 'deadline'=>$order['initiate']+$this->consts['DEADLINE_SEC'],
                 'readyTime'=>0,
                 'execTime'=>$this->consts['HANDOVER_SEC'],
@@ -175,16 +179,17 @@ class ScheduleService{
                 Log::debug("ignore driver ".$driver['driver_id']." because of other workload");
                 continue;
             }
-            $locations['dr'.$driver['driver_id']] = [
+            $locId = 'dr'.$driver['driver_id'];
+            $locations[$locId] = [
                 'lat'=>floatval($driver['lat']),'lng'=>floatval($driver['lng']),'addr'=>null,
             ];
             $available_drivers[$driver['driver_id']] = [
                 'did'=>$driver['driver_id'],
                 'availableTime'=>max($curTime,$driver['valid_from']),
                 'offTime'=>$driver['valid_to'],
-                'locId'=>'dr'.$driver['driver_id'],
+                'locId'=>$locId,
                 'maxNOrder'=>$maxNOrder,
-                'distFactor'=>$driver['distFactor']??1,
+                'distFactor'=>$driver['distFactor']??1.0,
                 'pickFactor'=>$driver['pickFactor']??1,
                 'deliFactor'=>$driver['deliFactor']??1,
             ];
@@ -207,8 +212,6 @@ class ScheduleService{
         return [$available_drivers, $tasks, $locations];
     }
     private function map_service_get_dist($drivers, $tasks, $locations) {
-        Log::debug("processed drivers:".json_encode($drivers));
-        Log::debug("processed tasks:".json_encode($tasks));
         Log::debug("processed locations:".json_encode($locations));
         return [];
     }
@@ -222,7 +225,9 @@ class ScheduleService{
         $orders = $this->getOrders($area);
         $drivers = $this->getDrivers($area);
         list($driver_dict, $task_dict, $loc_dict) = $this->preprocess($orders, $drivers);
-        return ['orders'=>$orders, 'drivers'=>$drivers];
+        $map_sp = app()->make('cmoa_map_service');
+        $dist_mat = $map_sp->get_dist_mat($loc_dict);
+        return ['orders'=>$orders, 'drivers'=>$drivers, 'locations'=>$loc_dict];
     }
 
 }

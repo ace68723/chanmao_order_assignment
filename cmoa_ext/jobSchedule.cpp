@@ -165,7 +165,14 @@ int ALG::preProcess()
     if (drivers.size() > MAXNDRIVERS) return E_EXCEED_MAXN;
     if (tasks.size() > MAXNTASKS) return E_EXCEED_MAXN;
     if (nLocations > MAXNLOCATIONS) return E_EXCEED_MAXN;
-    for (int i=0; i<nLocations; i++) map[i][i] = 0;
+    auto maxdist = map[0][0];
+    for (int i=0; i<nLocations; i++) {
+        map[i][i] = 0;
+        for (int j=0; j<nLocations; j++) if (maxdist < map[i][j]) maxdist = map[i][j];
+    }
+    for (int i=0; i<nLocations; i++) {
+        for (int j=0; j<nLocations; j++) if (map[i][j] < -0.001) map[i][j] = maxdist;
+    }
     // set drivers, the tasklist maybe updated later according to curtask
     for (unsigned int i=0; i<drivers.size(); i++) {
         if (!IN_RANGE(drivers[i].location, nLocations)) return E_WRONG_INDEX;
