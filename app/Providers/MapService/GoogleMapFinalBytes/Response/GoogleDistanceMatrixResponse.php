@@ -2,7 +2,7 @@
 
 namespace App\Providers\MapService\GoogleMapFinalBytes\Response;
 
-class GoogleDistanceMatrixResponse
+class GoogleDistanceMatrixResponse implements \JsonSerializable
 {
     const RESPONSE_STATUS_OK = 'OK';
     const RESPONSE_STATUS_INVALID_REQUEST = 'INVALID_REQUEST';
@@ -101,5 +101,11 @@ class GoogleDistanceMatrixResponse
     private function addRow(Row $row)
     {
         $this->rows[] = $row;
+    }
+
+    public function jsonSerialize()
+    {
+        $vars = get_object_vars($this);
+        return $vars;
     }
 }

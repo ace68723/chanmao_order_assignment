@@ -5,8 +5,9 @@ namespace App\Providers\MapService\GoogleMapFinalBytes;
 use App\Providers\MapService\GoogleMapFinalBytes\Response\GoogleDistanceMatrixResponse;
 
 use GuzzleHttp\Client;
+use Log;
 
-class GoogleDistanceMatrix
+class GoogleDistanceMatrix implements \JsonSerializable
 {
     const URL = 'https://maps.googleapis.com/maps/api/distancematrix/json';
 
@@ -151,12 +152,13 @@ class GoogleDistanceMatrix
         if ($response->getStatusCode() !== 200) {
             throw new \Exception('Response with status code '.$response->getStatusCode());
         }
+        Log::debug("googlemap:".$response->getBody()->getContents());
         $responseObject = new GoogleDistanceMatrixResponse(json_decode($response->getBody()->getContents()));
         $this->validateResponse($responseObject);
         return $responseObject;
     }
 
-    private function validateResponse(GoogleDistanceMatrixResponse $response) : void
+    private function validateResponse(GoogleDistanceMatrixResponse $response)
     {
         switch ($response->getStatus()) {
             case GoogleDistanceMatrixResponse::RESPONSE_STATUS_OK:
@@ -180,5 +182,11 @@ class GoogleDistanceMatrix
                 throw new Exception\ResponseException(sprintf("Unknown status code: %s",$response->getStatus()), 6);
                 break;
         }
+    }
+
+    public function jsonSerialize()
+    {
+        $vars = get_object_vars($this);
+        return $vars;
     }
 }
