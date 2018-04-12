@@ -2,6 +2,8 @@
 
 namespace App\Providers\MapService\GoogleMapFinalBytes;
 
+use App\Providers\MapService\GoogleMapFinalBytes\Response\GoogleDistanceMatrixResponse;
+
 use GuzzleHttp\Client;
 
 class GoogleDistanceMatrix
