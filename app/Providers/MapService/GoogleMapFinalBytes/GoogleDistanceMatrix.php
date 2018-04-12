@@ -49,7 +49,7 @@ class GoogleDistanceMatrix
 
     public function getLanguage() : string
     {
-        return $this->language;
+        return $this->language ?? self::LANGUAGE;
     }
 
     public function setLanguage($language = self::LANGUAGE) : GoogleDistanceMatrix
@@ -60,7 +60,7 @@ class GoogleDistanceMatrix
 
     public function getUnits() : string
     {
-        return $this->units;
+        return $this->units ?? self::UNITS_METRIC;
     }
 
     public function setUnits($units = self::UNITS_METRIC) : GoogleDistanceMatrix
@@ -93,7 +93,7 @@ class GoogleDistanceMatrix
 
     public function getMode() : string
     {
-        return $this->mode;
+        return $this->mode ?? self::MODE_DRIVING;
     }
 
     public function setMode($mode = self::MODE_DRIVING) : GoogleDistanceMatrix
@@ -104,7 +104,7 @@ class GoogleDistanceMatrix
 
     public function getAvoid() : string
     {
-        return $this->avoid;
+        return $this->avoid ?? '';
     }
 
     public function setAvoid($avoid) : GoogleDistanceMatrix
@@ -122,9 +122,10 @@ class GoogleDistanceMatrix
             'origins' => count($this->origins) > 1 ? implode('|', $this->origins) : $this->origins[0],
             'destinations' => count($this->destinations) > 1 ? implode('|', $this->destinations) : $this->destinations[0],
             'mode' => $this->getMode(),
-            'avoid' => $this->getAvoid(),
             'units' => $this->getUnits()
         ];
+        if (!empty($this->getAvoid()))
+            $data['avoid'] = $this->getAvoid();
         $parameters = http_build_query($data);
         $url = self::URL.'?'.$parameters;
 
