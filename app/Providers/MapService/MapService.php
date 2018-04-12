@@ -5,7 +5,7 @@ use Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Http\Request;
-use FinalBytes\GoogleDistanceMatrix\GoogleDistanceMatrix;
+use App\Providers\MapService\GoogleMapFinalBytes\GoogleDistanceMatrix;
 use App\Exceptions\CmException;
 
 class MapService{
@@ -98,7 +98,7 @@ class MapService{
         if ($n <= 1) {
             throw new CmException('SYSTEM_ERROR', "out of quota");
         }
-        Redis::decr("map:quota", $n*$n);
+        Redis::decrby("map:quota", $n*$n);
         $locs = array_slice($origin_loc_arr, 0, $n);
         $this->google_map_dist($locs, $locs);
         return;
