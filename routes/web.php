@@ -15,7 +15,7 @@ $router->get('/', function () use ($router) {
     return $router->app->version();
 });
 
-$router->group(['prefix'=>'api/v1/schedule',], function ($router)
+$router->group(['prefix'=>'api/v1/schedule', 'middleware'=>'auth:custom_token'], function ($router)
 {
     $api_names = [
         'reload','sim',
