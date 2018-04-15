@@ -1,0 +1,62 @@
+<?php
+namespace App\Providers\MapService;
+
+use Log;
+use Illuminate\Support\Facades\Redis;
+use Illuminate\Http\Request;
+use App\Providers\MapService\GoogleMapFinalBytes\GoogleDistanceMatrix;
+use App\Providers\MapService\GoogleMapFinalBytes\Response;
+use App\Exceptions\CmException;
+
+class GoogleMapProxy{
+    const  DAILY_QUOTA = 2500;
+
+    static public function get_quota() : int 
+    {
+        $quota = Redis::get("map:quota");
+        if (is_null($quota)) {
+            $quota = self::DAILY_QUOTA;
+            Redis::setex("map:quota", 24*3600, $quota);
+        }
+        else {
+            $quota = intval($quota);
+        }
+        Log::debug("got google map quota:".$quota);
+    }
+    static public function get_dist_mat($origin_loc_arr, $end_loc_arr) {
+        $dist_mat_dict = [];
+        $nElem = count($origin_loc_arr) * count($end_loc_arr);
+        $quota = self::get_quota();
+        if ($nElem>$quota) {
+            Log::warn('google_map get dist mat fail because of quota limit');
+            return $dist_mat_dict;
+        }
+        Redis::decrby("map:quota", $nElem);
+        try {
+            $sp = new GoogleDistanceMatrix(env('GOOGLE_API_KEY'));
+            foreach($start_loc_arr as $loc) {
+                $sp->addOrigin($loc);
+            }
+            foreach($end_loc_arr as $loc) {
+                $sp->addDestination($loc);
+            }
+            $respObj = $sp->sendRequest();
+            foreach($respObj->getRows() as $i=>$row) {
+                foreach($row->getElements() as $j=>$element) {
+                    if ($element->getStatus() == Element::STATUS_OK) {
+                        $dist_mat_dict[$origin_loc_arr[$i]][$end_loc_arr[$j]] = [
+                            [$i,$j],
+                            $element->getDuration()->getValue(),
+                            $element->getDistance()->getValue(),
+                        ];
+                    }
+                }
+            }
+        }
+        catch(\Exception $e) {
+            Log::debug('google map api error:'.$e->getMessage());
+        }
+        Log::debug(json_encode($dist_mat_dict));
+        return $dist_mat_dict;
+    }
+}

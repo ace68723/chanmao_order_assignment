@@ -152,8 +152,9 @@ class GoogleDistanceMatrix implements \JsonSerializable
         if ($response->getStatusCode() !== 200) {
             throw new \Exception('Response with status code '.$response->getStatusCode());
         }
-        Log::debug("googlemap:".$response->getBody()->getContents());
-        $responseObject = new GoogleDistanceMatrixResponse(json_decode($response->getBody()->getContents()));
+        $content = $response->getBody()->getContents();
+        Log::debug("googlemap:".$content);
+        $responseObject = new GoogleDistanceMatrixResponse(json_decode($content));
         $this->validateResponse($responseObject);
         return $responseObject;
     }

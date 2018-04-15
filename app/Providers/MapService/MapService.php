@@ -5,7 +5,6 @@ use Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Http\Request;
-use App\Providers\MapService\GoogleMapFinalBytes\GoogleDistanceMatrix;
 use App\Exceptions\CmException;
 
 class MapService{
@@ -19,7 +18,7 @@ class MapService{
         $this->consts['CENTER'] = [43.78,-79.28];
         //$this->consts['DEG_TO_M_RATIO'] = ['LAT'=>1,'LNG'=>1.385037];//1.0/cos($this->consts['CENTER']['LAT']/180.0*3.14159)];
         $this->consts['DEG_TO_KM_RATIO'] = [111.1949,154.0091];//6371*1.0/180*3.14159
-        $this->consts['DEG_PRECISION'] = 5;
+        $this->consts['DEG_PRECISION'] = 6;
         $this->consts['GRID_LEN_KM'] = 0.1;
         $this->consts['GOOGLE_API_KEY'] = env('GOOGLE_API_KEY');
     }
@@ -77,48 +76,88 @@ class MapService{
             $loc_dict[$k]['idx'] = $grid_dict[$v['gridId']]['idx']?? -1;
         }
         Log::debug("len(origin):".count($origin_loc_arr)." len(dest):".count($dest_loc_arr));
-        $this->dist_approx($origin_loc_arr);
-        return [];
+        $dist_mat = $this->dist_approx($origin_loc_arr, $dest_loc_arr);
+        return $dist_mat;
     }
-    private function dist_approx($origin_loc_arr) {
-        $dist_mat_dict = [];
-        $n = min(count($origin_loc_arr), 7);
-        $quota = Redis::get("map:quota");
-        if (is_null($quota)) {
-            $quota = 2500;
-            Redis::setex("map:quota", 24*3600, $quota);
+    private function dist_approx($origin_loc_arr, $dest_loc_arr) {
+        $cached_mat_dict = $this->cache_get_dist_dict($origin_loc_arr, $dest_loc_arr);
+        $dist_mat_dict = $cached_mat;
+        $missed_pairs = [];
+        foreach($origin_loc_arr as $origin_loc) {
+            foreach($dest_loc_arr as $dest_loc) {
+                if (!isset($dist_mat_dict[$origin_loc][$dest_loc])) {
+                    $missed_pairs[$origin_loc][$dest_loc] = 1;
+                }
+            }
         }
-        else {
-            $quota = intval($quota);
-        }
-        Log::debug("got quota:".$quota);
-        if ($n*$n>$quota) {
-            $n = intval(sqrt($quota));
-        }
-        if ($n <= 1) {
+        if (empty($missed_pairs))
+            return $dist_mat_dict;
+        $quota = GoogleMapProxy::getQuota();
+        if ($quota <= 5) {
             throw new CmException('SYSTEM_ERROR', "out of quota");
         }
-        Redis::decrby("map:quota", $n*$n);
-        $locs = array_slice($origin_loc_arr, 0, $n);
-        $this->google_map_dist($locs, $locs);
+        list($sel_origins, $sel_dests) = $this->approx_select($missed_pairs, $quota);
+        $sel_mat = $this->google_map_dist($sel_origins, $sel_dests);
+        $di_ratio = 0;
+        $du_ratio = 0;
+        $n = 0;
+        foreach ($sel_mat as $rows) {
+            foreach($rows as $elem) {
+                list($i,$j) = $elem[0];
+                $start_loc = $sel_origins[$i];
+                $end_loc = $sel_dests[$j];
+                if ($start_loc == $end_loc) continue;
+                $dist_mat[$start_loc][$end_loc] = $elem[1];
+                $x = $this->toGridIdx(explode(',',$start_loc));
+                $y = $this->toGridIdx(explode(',',$end_loc));
+                $l2_dist = sqrt(($x[0]-$y[0])**2 + ($x[1]-$y[1])**2);
+                $n += 1;
+                $du_ratio += $elem[1]/$l2_dist;
+                $di_ratio += $elem[2]/$l2_dist;
+            }
+        }
+        $du_ratio /= $n;
+        $di_ratio /= $n;
         return;
     }
-    private function google_map_dist($start_loc_arr, $end_loc_arr) {
-        $dist_mat = [];
-        try {
-            $sp = new GoogleDistanceMatrix($this->consts['GOOGLE_API_KEY']);
-            foreach($start_loc_arr as $loc) {
-                $sp->addOrigin($loc);
+    private function cache_get_dist_dict($origin_loc_arr, $dest_loc_arr) {
+        return [];
+    }
+    private function approx_select($missed_paris, $quota) {
+        $starts = [];
+        $ends = [];
+        $nMissed = 0;
+        foreach($missed_pairs as $start_loc=>$rows) {
+            foreach($rows as $end_loc=>$elem) {
+                $starts[$start_loc] = ($starts[$start_loc] ?? 0)+1;
+                $ends[$end_loc] = ($ends[$end_loc] ?? 0)+1;
+                $nMissed += 1;
             }
-            foreach($end_loc_arr as $loc) {
-                $sp->addDestination($loc);
+        }
+        $nStart = min(count($starts),3);
+        $nEnd = min(count($ends),4);
+        $sel_start = array_rand($starts, $nStart);
+        $sel_end = array_rand($ends, $nEnd);
+        $nEle = $this->count_cover($sel_start, $sel_end, $missed_pairs);
+        for($ntry = 0; $ntry < 5; $ntry++) {
+            if ($nStart == count($starts) && $nEnd == count($ends)) break;
+            if ($nEle == $nMissed) break;
+            $temp_start = array_rand($starts, $nStart);
+            $temp_end = array_rand($ends, $nEnd);
+            $temp_nEle = $this->count_cover($temp_start, $temp_end, $missed_pairs);
+            if ($temp_nEle > $nEle) {
+                list($nEle, $sel_start, $sel_end) = [$temp_nEle, $temp_start, $temp_end];
             }
-            $dist_mat = $sp->sendRequest();
         }
-        catch(\Exception $e) {
-            Log::debug('google map api error:'.$e->getMessage());
+        return [$sel_start, $sel_end];
+    }
+    private function count_cover($sel_start, $sel_end, $missed_pairs) {
+        $nEle = 0;
+        foreach($sel_start as $start_loc) {
+            foreach($sel_end as $end_loc) {
+                if (isset($missed_pairs)) $nEle += 1;
+            }
         }
-        Log::debug(json_encode($dist_mat));
-        return $dist_mat;
+        return $nEle;
     }
 }
