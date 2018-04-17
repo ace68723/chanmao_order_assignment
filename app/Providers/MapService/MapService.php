@@ -2,8 +2,6 @@
 namespace App\Providers\MapService;
 
 use Log;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redis;
 use Illuminate\Http\Request;
 use App\Exceptions\CmException;
 
@@ -77,51 +75,70 @@ class MapService{
         }
         Log::debug("len(origin):".count($origin_loc_arr)." len(dest):".count($dest_loc_arr));
         $dist_mat = $this->dist_approx($origin_loc_arr, $dest_loc_arr);
-        return $dist_mat;
+        $ret = [];
+        foreach ($origin_loc_arr as $i=>$start_loc)
+            foreach ($origin_loc_arr as $j=>$end_loc) {
+                $ret[$i][$j] = $dist_mat[$start_loc][$end_loc] ?? -1;
+            }
+        return $ret;
     }
     private function dist_approx($origin_loc_arr, $dest_loc_arr) {
-        $cached_mat_dict = $this->cache_get_dist_dict($origin_loc_arr, $dest_loc_arr);
-        $dist_mat_dict = $cached_mat;
+        $cached_mat = CacheMap::get_dist_mat($origin_loc_arr, $dest_loc_arr);
+        $dist_mat = $cached_mat;
         $missed_pairs = [];
         foreach($origin_loc_arr as $origin_loc) {
             foreach($dest_loc_arr as $dest_loc) {
-                if (!isset($dist_mat_dict[$origin_loc][$dest_loc])) {
+                if ($origin_loc == $dest_loc) continue;
+                if (!isset($dist_mat[$origin_loc][$dest_loc])) {
                     $missed_pairs[$origin_loc][$dest_loc] = 1;
                 }
             }
         }
-        if (empty($missed_pairs))
-            return $dist_mat_dict;
+        if (empty($missed_pairs)) return $dist_mat;
         $quota = GoogleMapProxy::getQuota();
         if ($quota <= 5) {
             throw new CmException('SYSTEM_ERROR', "out of quota");
         }
         list($sel_origins, $sel_dests) = $this->approx_select($missed_pairs, $quota);
-        $sel_mat = $this->google_map_dist($sel_origins, $sel_dests);
-        $di_ratio = 0;
-        $du_ratio = 0;
-        $n = 0;
-        foreach ($sel_mat as $rows) {
-            foreach($rows as $elem) {
-                list($i,$j) = $elem[0];
-                $start_loc = $sel_origins[$i];
-                $end_loc = $sel_dests[$j];
+        $sel_mat = GoogleMapProxy::get_dist_mat($sel_origins, $sel_dests);
+        CacheMap::set_dist_mat($sel_mat);
+        foreach ($sel_mat as $start_loc=>$rows) {
+            foreach($rows as $end_loc=>$elem) {
                 if ($start_loc == $end_loc) continue;
-                $dist_mat[$start_loc][$end_loc] = $elem[1];
+                $dist_mat[$start_loc][$end_loc] = $elem[0];
+                unset($missed_pairs[$start_loc][$end_loc]);
+            }
+        }
+        foreach ($missed_pairs as $start_loc=>$missed_rows) {
+            foreach ($missed_rows as $end_loc=>$missed_elem) {
+                $dist_mat[$start_loc][$end_loc] = $this->weighted_approx($start_loc, $end_loc, $sel_mat);
+            }
+        }
+        return $dist_mat;
+    }
+    private function weighted_approx($start_loc, $end_loc, $base_mat) {
+        $total_weight = 0;
+        $total_ratio = [0,0];
+        $xx = $this->toGridIdx(explode(',',$start_loc));
+        $yy = $this->toGridIdx(explode(',',$end_loc));
+        $ll = sqrt(($xx[0]-$yy[0])**2 + ($xx[1]-$yy[1])**2);
+        foreach ($base_mat as $start_loc=>$rows) {
+            foreach($rows as $end_loc=>$elem) {
+                if ($start_loc == $end_loc) continue;
+                $dist_mat[$start_loc][$end_loc] = $elem[0];
                 $x = $this->toGridIdx(explode(',',$start_loc));
                 $y = $this->toGridIdx(explode(',',$end_loc));
                 $l2_dist = sqrt(($x[0]-$y[0])**2 + ($x[1]-$y[1])**2);
-                $n += 1;
-                $du_ratio += $elem[1]/$l2_dist;
-                $di_ratio += $elem[2]/$l2_dist;
+                $ratio = [$elem[0]/$l2_dist, $elem[1]/$l2_dist];
+                $expw = (-abs($xx[0]-$x[0])-abs($xx[1]-$x[1])-abs($yy[0]-$y[0])-abs($yy[1]-$y[1]));
+                $weight = exp($expw/200); // mean for 200*200 grid
+                $total_weight += $weight;
+                for($i=0; $i<2; $i++){
+                    $total_ratio[$i] += $weight * $ratio[$i];
+                }
             }
         }
-        $du_ratio /= $n;
-        $di_ratio /= $n;
-        return;
-    }
-    private function cache_get_dist_dict($origin_loc_arr, $dest_loc_arr) {
-        return [];
+        return $ll * $total_ratio[0]/$total_weight;
     }
     private function approx_select($missed_paris, $quota) {
         $starts = [];

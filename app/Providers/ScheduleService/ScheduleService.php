@@ -233,7 +233,7 @@ class ScheduleService{
         $loc_dict = $input['locations'];
         $map_sp = app()->make('cmoa_map_service');
         $dist_mat = $map_sp->get_dist_mat($loc_dict);
-        return $loc_dict;
+        return [$loc_dict, $dist_mat];
     }
 
 }

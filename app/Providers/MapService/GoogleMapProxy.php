@@ -13,10 +13,10 @@ class GoogleMapProxy{
 
     static public function get_quota() : int 
     {
-        $quota = Redis::get("map:quota");
+        $quota = Redis::get("cmoa:googlemap:quota");
         if (is_null($quota)) {
             $quota = self::DAILY_QUOTA;
-            Redis::setex("map:quota", 24*3600, $quota);
+            Redis::setex("cmoa:googlemap:quota", 24*3600, $quota);
         }
         else {
             $quota = intval($quota);
@@ -31,7 +31,7 @@ class GoogleMapProxy{
             Log::warn('google_map get dist mat fail because of quota limit');
             return $dist_mat_dict;
         }
-        Redis::decrby("map:quota", $nElem);
+        Redis::decrby("cmoa:googlemap:quota", $nElem);
         try {
             $sp = new GoogleDistanceMatrix(env('GOOGLE_API_KEY'));
             foreach($start_loc_arr as $loc) {
@@ -44,8 +44,8 @@ class GoogleMapProxy{
             foreach($respObj->getRows() as $i=>$row) {
                 foreach($row->getElements() as $j=>$element) {
                     if ($element->getStatus() == Element::STATUS_OK) {
+                        if ($origin_loc_arr[$i] == $end_loc_arr[$j]) continue;
                         $dist_mat_dict[$origin_loc_arr[$i]][$end_loc_arr[$j]] = [
-                            [$i,$j],
                             $element->getDuration()->getValue(),
                             $element->getDistance()->getValue(),
                         ];
@@ -56,7 +56,7 @@ class GoogleMapProxy{
         catch(\Exception $e) {
             Log::debug('google map api error:'.$e->getMessage());
         }
-        Log::debug(json_encode($dist_mat_dict));
+        Log::debug("googlemap return:".json_encode($dist_mat_dict));
         return $dist_mat_dict;
     }
 }
