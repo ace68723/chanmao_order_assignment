@@ -94,7 +94,7 @@ class MapService{
             }
         }
         if (empty($missed_pairs)) return $dist_mat;
-        $quota = GoogleMapProxy::getQuota();
+        $quota = GoogleMapProxy::get_quota();
         if ($quota <= 5) {
             throw new CmException('SYSTEM_ERROR', "out of quota");
         }
@@ -129,7 +129,8 @@ class MapService{
                 $y = self::toGridIdx(explode(',',$end_loc));
                 $l2_dist = sqrt(($x[0]-$y[0])**2 + ($x[1]-$y[1])**2);
                 $ratio = [$elem[0]/$l2_dist, $elem[1]/$l2_dist];
-                $expw = (-abs($xx[0]-$x[0])-abs($xx[1]-$x[1])-abs($yy[0]-$y[0])-abs($yy[1]-$y[1]));
+                $expw = -abs($xx[0]-$x[0])-abs($xx[1]-$x[1])-abs($yy[0]-$y[0])-abs($yy[1]-$y[1]);
+                Log::debug($expw);
                 $weight = exp($expw/200); // mean for 200*200 grid
                 $total_weight += $weight;
                 for($i=0; $i<2; $i++){
@@ -165,6 +166,7 @@ class MapService{
                 list($nEle, $sel_start, $sel_end) = [$temp_nEle, $temp_start, $temp_end];
             }
         }
+        Log::debug("from ".json_encode($starts, $ends)." select ".json_encode($sel_start, $sel_end));
         return [$sel_start, $sel_end];
     }
     private function count_cover($sel_start, $sel_end, $missed_pairs) {
