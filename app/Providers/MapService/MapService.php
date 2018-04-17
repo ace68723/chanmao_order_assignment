@@ -9,32 +9,31 @@ class MapService{
 
     public $consts;
     public $data;
+        const CENTER = [43.78,-79.28];
+        //['LAT'=>1,'LNG'=>1.385037];//1.0/cos($this->consts['CENTER']['LAT']/180.0*3.14159)];
+        const DEG_TO_KM_RATIO = [111.1949,154.0091];//6371*1.0/180*3.14159
+        const DEG_PRECISION = 5;
+        const GRID_LEN_KM = 0.1;
     public function __construct()
     {
         $this->consts = array();
         $this->consts['MAXNLOCATIONS'] = 100;
-        $this->consts['CENTER'] = [43.78,-79.28];
-        //$this->consts['DEG_TO_M_RATIO'] = ['LAT'=>1,'LNG'=>1.385037];//1.0/cos($this->consts['CENTER']['LAT']/180.0*3.14159)];
-        $this->consts['DEG_TO_KM_RATIO'] = [111.1949,154.0091];//6371*1.0/180*3.14159
-        $this->consts['DEG_PRECISION'] = 6;
-        $this->consts['GRID_LEN_KM'] = 0.1;
-        $this->consts['GOOGLE_API_KEY'] = env('GOOGLE_API_KEY');
     }
-    public function toGridIdx($latlng_arr) {
+    static public function toGridIdx($latlng_arr) {
         $ret = $latlng_arr;
         for($i=0; $i<2; $i++) {
-            $ret[$i] = ($ret[$i]-$this->consts['CENTER'][$i])*$this->consts['DEG_TO_KM_RATIO'][$i]/$this->consts['GRID_LEN_KM'];
+            $ret[$i] = ($ret[$i]-self::CENTER[$i])*self::DEG_TO_KM_RATIO[$i]/self::GRID_LEN_KM;
             $ret[$i] = intval(floor($ret[$i]));
         }
         return $ret;
     }
-    public function toLatLng($idx_arr) {
+    static public function toLatLng($idx_arr) {
         $ret = $idx_arr;
         for($i=0; $i<2; $i++) {
             $ret[$i] += 0.5;
-            $ret[$i] *= $this->consts['GRID_LEN_KM']/$this->consts['DEG_TO_KM_RATIO'][$i];
-            $ret[$i] += $this->consts['CENTER'][$i];
-            $ret[$i] = round($ret[$i],$this->consts['DEG_PRECISION']);
+            $ret[$i] *= self::GRID_LEN_KM/self::DEG_TO_KM_RATIO[$i];
+            $ret[$i] += self::CENTER[$i];
+            $ret[$i] = round($ret[$i],self::DEG_PRECISION);
         }
         return $ret;
     }
@@ -47,9 +46,9 @@ class MapService{
     public function get_dist_mat(&$loc_dict) {
         $grid_dict = [];
         foreach($loc_dict as $k=>$loc) {
-            $grid_idx_arr = $this->toGridIdx([$loc['lat'], $loc['lng']]);
+            $grid_idx_arr = self::toGridIdx([$loc['lat'], $loc['lng']]);
             $gridId = implode(',', $grid_idx_arr);
-            $latlng = implode(',', $this->toLatLng($grid_idx_arr));
+            $latlng = implode(',', self::toLatLng($grid_idx_arr));
             $loc_dict[$k]['gridId'] = $gridId;
             $loc_dict[$k]['grid_idx_arr'] = $grid_idx_arr;
             $loc_dict[$k]['adjustLatLng'] = $latlng;
@@ -62,9 +61,9 @@ class MapService{
         }
         $origin_loc_arr = [];
         $dest_loc_arr = [];
-        foreach($grid_dict as $gid=>$v) {
-            $latlng=implode(',',$this->toLatLng(explode(',',$gid)));
-            $grid_dict[$gid]['idx'] = count($origin_loc_arr);
+        foreach($grid_dict as $gridId=>$v) {
+            $latlng=implode(',',self::toLatLng(explode(',',$gridId)));
+            $grid_dict[$gridId]['idx'] = count($origin_loc_arr);
             $origin_loc_arr[] = $latlng;
             if ($grid_dict[$gridId]['type'] == 1) {
                 $dest_loc_arr[] = $latlng;
@@ -119,15 +118,15 @@ class MapService{
     private function weighted_approx($start_loc, $end_loc, $base_mat) {
         $total_weight = 0;
         $total_ratio = [0,0];
-        $xx = $this->toGridIdx(explode(',',$start_loc));
-        $yy = $this->toGridIdx(explode(',',$end_loc));
+        $xx = self::toGridIdx(explode(',',$start_loc));
+        $yy = self::toGridIdx(explode(',',$end_loc));
         $ll = sqrt(($xx[0]-$yy[0])**2 + ($xx[1]-$yy[1])**2);
         foreach ($base_mat as $start_loc=>$rows) {
             foreach($rows as $end_loc=>$elem) {
                 if ($start_loc == $end_loc) continue;
                 $dist_mat[$start_loc][$end_loc] = $elem[0];
-                $x = $this->toGridIdx(explode(',',$start_loc));
-                $y = $this->toGridIdx(explode(',',$end_loc));
+                $x = self::toGridIdx(explode(',',$start_loc));
+                $y = self::toGridIdx(explode(',',$end_loc));
                 $l2_dist = sqrt(($x[0]-$y[0])**2 + ($x[1]-$y[1])**2);
                 $ratio = [$elem[0]/$l2_dist, $elem[1]/$l2_dist];
                 $expw = (-abs($xx[0]-$x[0])-abs($xx[1]-$x[1])-abs($yy[0]-$y[0])-abs($yy[1]-$y[1]));

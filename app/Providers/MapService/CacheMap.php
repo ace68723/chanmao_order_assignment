@@ -23,6 +23,7 @@ class CacheMap{
     }
     static public function get_dist_mat($origin_loc_arr, $end_loc_arr) {
         $dist_mat = [];
+        if (empty($origin_loc_arr) || empty($end_loc_arr)) return $dist_mat;
         $curTime = time();
         $key_prefix = self::PREFIX . "distMat:";
         $n = 0;
