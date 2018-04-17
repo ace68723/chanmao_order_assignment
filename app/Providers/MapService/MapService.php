@@ -173,7 +173,7 @@ class MapService{
         $nEle = 0;
         foreach($sel_start as $start_loc) {
             foreach($sel_end as $end_loc) {
-                if (isset($missed_pairs)) $nEle += 1;
+                if (isset($missed_pairs[$start_loc][$end_loc])) $nEle += 1;
             }
         }
         return $nEle;
