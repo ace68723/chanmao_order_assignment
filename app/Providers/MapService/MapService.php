@@ -140,7 +140,7 @@ class MapService{
         }
         return $ll * $total_ratio[0]/$total_weight;
     }
-    private function approx_select($missed_paris, $quota) {
+    private function approx_select($missed_pairs, $quota) {
         $starts = [];
         $ends = [];
         $nMissed = 0;
@@ -166,7 +166,7 @@ class MapService{
                 list($nEle, $sel_start, $sel_end) = [$temp_nEle, $temp_start, $temp_end];
             }
         }
-        Log::debug("from ".json_encode($starts, $ends)." select ".json_encode($sel_start, $sel_end));
+        Log::debug("from ".json_encode([$starts, $ends])." select ".json_encode([$sel_start, $sel_end]));
         return [$sel_start, $sel_end];
     }
     private function count_cover($sel_start, $sel_end, $missed_pairs) {

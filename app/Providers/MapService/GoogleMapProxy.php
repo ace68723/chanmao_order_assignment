@@ -22,6 +22,7 @@ class GoogleMapProxy{
             $quota = intval($quota);
         }
         Log::debug("got google map quota:".$quota);
+        return $quota;
     }
     static public function get_dist_mat($origin_loc_arr, $end_loc_arr) {
         $dist_mat_dict = [];
@@ -34,7 +35,7 @@ class GoogleMapProxy{
         Redis::decrby("cmoa:googlemap:quota", $nElem);
         try {
             $sp = new GoogleDistanceMatrix(env('GOOGLE_API_KEY'));
-            foreach($start_loc_arr as $loc) {
+            foreach($origin_loc_arr as $loc) {
                 $sp->addOrigin($loc);
             }
             foreach($end_loc_arr as $loc) {
