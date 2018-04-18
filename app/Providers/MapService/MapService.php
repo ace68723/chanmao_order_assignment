@@ -130,8 +130,7 @@ class MapService{
                 $l2_dist = sqrt(($x[0]-$y[0])**2 + ($x[1]-$y[1])**2);
                 $ratio = [$elem[0]/$l2_dist, $elem[1]/$l2_dist];
                 $expw = -abs($xx[0]-$x[0])-abs($xx[1]-$x[1])-abs($yy[0]-$y[0])-abs($yy[1]-$y[1]);
-                Log::debug($expw);
-                $weight = exp($expw/200); // mean for 200*200 grid
+                $weight = exp($expw/100); // heruistic mean for 200*200 grid
                 $total_weight += $weight;
                 for($i=0; $i<2; $i++){
                     $total_ratio[$i] += $weight * $ratio[$i];

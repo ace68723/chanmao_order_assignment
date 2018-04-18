@@ -58,5 +58,11 @@ class ScheduleController extends Controller
         $ret = $sp->get_schedule($la_paras);
         return $this->format_success_ret($ret);
     }
+    public function get_dist_mat(Request $request) {
+        $loc_dict = $request->json()->all()['locations'];
+        $map_sp = app()->make('cmoa_map_service');
+        $dist_mat = $map_sp->get_dist_mat($loc_dict);
+        return [$loc_dict, $dist_mat];
+    }
 
 }

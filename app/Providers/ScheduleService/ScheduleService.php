@@ -52,8 +52,10 @@ class ScheduleService{
             ['ob.created', '>', $dt->format('Y-m-d H:i:s')],
             ['ob.dltype','>=', 1], ['ob.dltype','<=', 3], ['ob.dltype', '!=', 2],
             ['rl.area','=',0],
-            ['rb.area','=',$area],
         ];
+        if (!is_null($area) && $area != -1) {
+            $whereCond[] = ['rb.area','=',$area];
+        }
         $sql = DB::table('cm_order_base as ob')
             ->join('cm_rr_base as rb', 'rb.rid','=','ob.rid')
             ->join('cm_rr_loc as rl', 'rl.rid','=','rb.rid')
@@ -81,7 +83,7 @@ class ScheduleService{
         $ret = [];
         foreach($drivers as $dr)
             if ($dr['area'] == $this->consts['AREA'][$area]){
-                $ret[] = $dr;
+                $ret[$dr['driver_id']] = $dr;
             }
         $timer += microtime(true);
         Log::debug("got ".count($ret)." drivers for area ".$area. " takes:".$timer." secs");
@@ -89,13 +91,18 @@ class ScheduleService{
     }
 
     // check consistency, remove unnecessary tasks/driver/locations, convert to the input for module
-    private function preprocess($orders, $drivers) {
+    private function preprocess($orders, $drivers, $area) {
         $curTime = time();
         $tasks = [];
         $locations = [];
         $workload = [];
         foreach($orders as $order) {
             $order = (array)$order;
+            if ($order['area'] != $area) {
+                if (empty($order['driver_id'])) continue;
+                $did = $order['driver_id'];
+                if ($drivers[$did]['area'] != $area) continue;
+            }
             $prevTask = null;
             if (!empty($order['driver_id'])) {
                 $workload[$order['driver_id']] = 1+($workload['driver_id']??0);
@@ -176,7 +183,7 @@ class ScheduleService{
             }
             $maxNOrder = ($driver['maxNOrder']??5)-$otherWorkload;
             if ($maxNOrder <= 0) {
-                Log::debug("ignore driver ".$driver['driver_id']." because of other workload");
+                Log::debug("ignore driver ".$driver['driver_id']." because of workload");
                 continue;
             }
             $locId = 'dr-'.$driver['driver_id'];
@@ -222,18 +229,23 @@ class ScheduleService{
         return;
     }
     public function reload($area) {
-        $orders = $this->getOrders($area);
+        $orders = $this->getOrders(-1);
         $drivers = $this->getDrivers($area);
-        list($driver_dict, $task_dict, $loc_dict) = $this->preprocess($orders, $drivers);
-        return ['orders'=>$orders, 'drivers'=>$drivers, 'locations'=>$loc_dict];
+        list($driver_dict, $task_dict, $loc_dict) = $this->preprocess($orders, $drivers, $area);
+        Log::debug('preprocess returns '.count($driver_dict). ' drivers, '.
+            count($task_dict).' tasks and '.count($loc_dict).' locations');
+        return ['tasks'=>$task_dict, 'drivers'=>$driver_dict, 'locations'=>$loc_dict];
     }
     public function sim($input) {
-        $orders = $input['orders'];
+        $tasks = $input['tasks'];
         $drivers = $input['drivers'];
         $loc_dict = $input['locations'];
         $map_sp = app()->make('cmoa_map_service');
         $dist_mat = $map_sp->get_dist_mat($loc_dict);
-        return [$loc_dict, $dist_mat];
+        foreach ($task_dict as $tid=>$task) {
+            $task_dict[$tid]['location'] = $loc_dict[$task['locId']]['idx'];
+        }
+        return [$loc_dict, $dist_mat, $task_dict];
     }
 
 }
