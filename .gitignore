@@ -4,6 +4,7 @@ Homestead.json
 Homestead.yaml
 .env
 *.swp
+.o
 .log
 .gz
 cert/
