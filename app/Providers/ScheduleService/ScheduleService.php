@@ -6,6 +6,7 @@ use Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Http\Request;
+use App\Exceptions\CmException;
 
 class ScheduleService{
 
@@ -277,9 +278,7 @@ class ScheduleService{
         foreach ($driver_arr as $i=>$driver) {
             $driver_arr[$i]['did'] = $didMap[$driver["did"]];
         }
-        $nLocations = count($loc_dict);
-        if ($nLocations != count($dist_mat))
-            throw new CmException('SYSTEM_ERROR','ill formatted dist matrix');
+        $nLocations = count($dist_mat);
         foreach($dist_mat as $row) {
             if ($nLocations != count($row))
                 throw new CmException('SYSTEM_ERROR','ill formatted dist matrix');
