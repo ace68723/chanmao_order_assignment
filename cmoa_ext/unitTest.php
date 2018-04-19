@@ -1,38 +1,32 @@
 <?php
-$br = (php_sapi_name() == "cli")? "":"<br>";
+require_once __DIR__."/preprocess.php";
 
-$module_name = 'cmoa-ext';
-if(!extension_loaded($module_name)) {
-	dl("$module_name." . PHP_SHLIB_SUFFIX);
-}
-if (!extension_loaded($module_name)) {
-	$str = "Module $module_name is not compiled into PHP";
-	echo "$str\n";
-}
 $drivers = [
     [
     "did"=> "23",
-    "curtask"=> null,
-    "available"=> 0,
+    "availableTime"=> 0,
     "location"=> "Chanmao Inc.",
-    "off"=> null,
+    "offTime"=> 120,
     ],
     [
     "did"=> "24",
-    "curtask"=> null,
-    "available"=> 0,
+    "availableTime"=> 0,
     "location"=> "Chanmao Inc.",
-    "off"=> null,
+    "offTime"=> 123,
     ],
 ];
-
 $tasks = 
 [ 
-[ "tid"=>"order1-fetch", "location"=>"Chanmao Inc.", "deadline"=>1432519683235, "did"=>"", "depend"=>null ], 
-[ "tid"=>"order1-deliver", "location"=>"Client1", "deadline"=>1432519683235, "did"=>"", "depend"=>"order1-fetch" ], 
-[ "tid"=>"order2-deliver", "location"=>"Client2", "deadline"=>1432519683235, "did"=>"", "depend"=>"" ] 
+    [ "tid"=>"order1-fetch", "location"=>"Chanmao Inc.", "deadline"=>1432519683235,
+    "readyTime"=>10, "execTime"=>5,
+    "did"=>"", "prevTask"=>null, "nextTask"=>"order1-deliver"], 
+    [ "tid"=>"order1-deliver", "location"=>"Client1", "deadline"=>1432519683235,
+    "readyTime"=>10, "execTime"=>5,
+    "did"=>"", "prevTask"=>"order1-fetch" ], 
+    [ "tid"=>"order2-deliver", "location"=>"Client2", "deadline"=>1432519683235,
+    "readyTime"=>10, "execTime"=>5,
+    "did"=>"", "prevTask"=>null ] 
 ];
-
 $paths = 
 [ 
 [ "start"=>"Chanmao Inc.", "end"=>"Client1", "time"=>10],
@@ -42,12 +36,28 @@ $paths =
 [ "start"=>"Client1", "end"=>"Client2", "time"=>25],
 [ "end"=>"Client1", "start"=>"Client2", "time"=>25]
 ];
-
+$locations = [
+    ['abid'=>'Chanmao Inc.'],
+    ['abid'=>'Client1'],
+    ['abid'=>'Client2'],
+];
+$distMat = [
+    [ 0, 10, 20],
+    [ 10, 0, 25],
+    [ 20, 25, 0],
+];
 $input = [
     "drivers"=>$drivers,
     "tasks"=>$tasks,
-    "paths"=>$paths,
+    "locations"=>$locations,
+    "distMat"=>$distMat,
 ];
-$res = cmoa_schedule($input);
-var_dump($res);
-?>
+$module_name = 'cmoa-ext';
+if (!extension_loaded($module_name)) {
+	$str = "Module $module_name is not compiled into PHP";
+	die("$str\n");
+}
+$input = schedule($input);
+$ret = cmoa_schedule($input);
+var_dump($ret);
+

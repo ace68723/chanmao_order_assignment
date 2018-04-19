@@ -226,11 +226,18 @@ class ScheduleService{
     private function fixCurTask(&$drivers, &$tasks) {
         return;
     }
-    private function keyToIdx($drivers_dict, $tasks_dict, $loc_dict) {
-        foreach ($task_dict as $tid=>$task) {
-            $task_dict[$tid]['location'] = $loc_dict[$task['locId']]['idx'];
+    private function keyToIdx($arr, $id_name) {
+        $idToInt = [];
+        $i = 0;
+        foreach ($arr as $item) {
+            if (isset($idToInt[$item[$id_name]])) {
+                //duplicate id
+                return null;
+            }
+            $idToInt[$item[$id_name]] = $i;
+            $i += 1;
         }
-        return;
+        return $idToInt;
     }
     public function reload($area) {
         $orders = $this->getOrders(-1);
@@ -242,11 +249,37 @@ class ScheduleService{
     }
     public function sim($input) {
         $task_dict = $input['tasks'];
-        $drivers = $input['drivers'];
+        $driver_dict = $input['drivers'];
+        $loc_dict = $input['loc_dict'];
+        $dist_mat = $input['dist_mat'];
+        foreach ($task_dict as $tid=>$task) {
+            $task_dict[$tid]['location'] = $loc_dict[$task['locId']]['idx'];
+        }
+        foreach ($driver_dict as $did=>$driver) {
+            $driver_dict[$did]['location'] = $loc_dict[$driver['locId']]['idx'];
+        }
+        $task_arr = array_values($task_dict);
+        $driver_arr = array_values($driver_dict);
+        $tidMap = $this->keyToIdx($task_arr, 'tid');
+        $didMap = $this->keyToIdx($driver_arr, 'did');
+        foreach ($task_arr as $i=>$task) {
+            $did = ($didMap[$task["did"]??null])??-1;
+            $prevTask = $tidMap[$task["prevTask"]??null]??-1;
+            $nextTask = $tidMap[$task["nextTask"]??null]??-1;
+            $task_arr[$i]['prevTask'] = $prevTask;
+            $task_arr[$i]['nextTask'] = $nextTask;
+            $task_arr[$i]['did'] = $did;
+            $task_arr[$i]['tid'] = $tidMap[$task['tid']];
+        }
+        foreach ($driver_arr as $i=>$driver) {
+            $driver_arr[$i]['did'] = $didMap[$driver["did"]];
+        }
+        return [$task_arr, $driver_arr, $dist_mat];
+    }
+    public function to_dist_mat($input) {
         $loc_dict = $input['locations'];
         $map_sp = app()->make('cmoa_map_service');
         $dist_mat = $map_sp->get_dist_mat($loc_dict);
-        return [$loc_dict, $dist_mat, $task_dict];
+        return ['loc_dict'=>$loc_dict, 'dist_mat'=>$dist_mat];
     }
-
 }
