@@ -101,7 +101,7 @@ class ScheduleService{
             if ($order['area'] != $area) {
                 if (empty($order['driver_id'])) continue;
                 $did = $order['driver_id'];
-                if (isset($drivers[$did]['area']) && $drivers[$did]['area'] != $area) continue;
+                if (!isset($drivers[$did]['area']) || $drivers[$did]['area'] != $this->consts['AREA'][$area]) continue;
             }
             $prevTask = null;
             if (!empty($order['driver_id'])) {
@@ -237,7 +237,7 @@ class ScheduleService{
         return ['tasks'=>$task_dict, 'drivers'=>$driver_dict, 'locations'=>$loc_dict];
     }
     public function sim($input) {
-        $tasks = $input['tasks'];
+        $task_dict = $input['tasks'];
         $drivers = $input['drivers'];
         $loc_dict = $input['locations'];
         $map_sp = app()->make('cmoa_map_service');
