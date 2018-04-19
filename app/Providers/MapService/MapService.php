@@ -85,14 +85,17 @@ class MapService{
         $cached_mat = CacheMap::get_dist_mat($origin_loc_arr, $dest_loc_arr);
         $dist_mat = $cached_mat;
         $missed_pairs = [];
+        $nn = 0;
         foreach($origin_loc_arr as $origin_loc) {
             foreach($dest_loc_arr as $dest_loc) {
                 if ($origin_loc == $dest_loc) continue;
                 if (!isset($dist_mat[$origin_loc][$dest_loc])) {
                     $missed_pairs[$origin_loc][$dest_loc] = 1;
+                    $nn++;
                 }
             }
         }
+        Log::debug("cache missing ".$nn." pairs");
         if (empty($missed_pairs)) return $dist_mat;
         $quota = GoogleMapProxy::get_quota();
         if ($quota <= 5) {
@@ -108,6 +111,7 @@ class MapService{
                 unset($missed_pairs[$start_loc][$end_loc]);
             }
         }
+        Log::debug("after query, missing ".$nn." pairs");
         foreach ($missed_pairs as $start_loc=>$missed_rows) {
             foreach ($missed_rows as $end_loc=>$missed_elem) {
                 $dist_mat[$start_loc][$end_loc] = $this->weighted_approx($start_loc, $end_loc, $sel_mat);
@@ -130,7 +134,7 @@ class MapService{
                 $l2_dist = sqrt(($x[0]-$y[0])**2 + ($x[1]-$y[1])**2);
                 $ratio = [$elem[0]/$l2_dist, $elem[1]/$l2_dist];
                 $expw = -abs($xx[0]-$x[0])-abs($xx[1]-$x[1])-abs($yy[0]-$y[0])-abs($yy[1]-$y[1]);
-                $weight = exp($expw/100); // heruistic mean for 200*200 grid
+                $weight = exp($expw/100); // heuristic mean for 200*200 grid
                 $total_weight += $weight;
                 for($i=0; $i<2; $i++){
                     $total_ratio[$i] += $weight * $ratio[$i];

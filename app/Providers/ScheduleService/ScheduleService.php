@@ -225,7 +225,10 @@ class ScheduleService{
     private function fixCurTask(&$drivers, &$tasks) {
         return;
     }
-    private function keyToIdx($drivers, $tasks) {
+    private function keyToIdx($drivers_dict, $tasks_dict, $loc_dict) {
+        foreach ($task_dict as $tid=>$task) {
+            $task_dict[$tid]['location'] = $loc_dict[$task['locId']]['idx'];
+        }
         return;
     }
     public function reload($area) {
@@ -242,9 +245,6 @@ class ScheduleService{
         $loc_dict = $input['locations'];
         $map_sp = app()->make('cmoa_map_service');
         $dist_mat = $map_sp->get_dist_mat($loc_dict);
-        foreach ($task_dict as $tid=>$task) {
-            $task_dict[$tid]['location'] = $loc_dict[$task['locId']]['idx'];
-        }
         return [$loc_dict, $dist_mat, $task_dict];
     }
 

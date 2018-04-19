@@ -39,6 +39,11 @@ class ScheduleController extends Controller
             throw new CmException('SYSTEM_ERROR', "ERROR SETTING IN API SCHEMA");
     }
 
+    public function get_orders(Request $request){
+        $sp = app()->make('cmoa_schedule_service');
+        $ret = $sp->getOrders(-1);
+        return $this->format_success_ret($ret);
+    }
     public function sim(Request $request){
         $sp = app()->make('cmoa_schedule_service');
         $ret = $sp->sim($request->json()->all());

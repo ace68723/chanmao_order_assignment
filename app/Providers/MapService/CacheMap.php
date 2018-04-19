@@ -35,7 +35,7 @@ class CacheMap{
             $ret = call_user_func_array('Illuminate\Support\Facades\Redis::hmget',$arr);
             foreach ($end_loc_arr as $i=>$end_loc) {
                 if (is_null($ret[$i])) continue;
-                $cached = json_decode($ret[$i]);
+                $cached = json_decode($ret[$i],true);
                 if ($curTime - $cached['timestamp'] > self::KEEP_ALIVE_SEC) {
                     continue;
                 }
