@@ -13,7 +13,7 @@ function getIDMaps($arr, $id_name) {
     }
     return $idToInt;
 }
-function schedule($input) {
+function prepare_input($input) {
     $drArr = [];
     $tkArr = [];
     $tIdMap = getIDMaps($input['tasks'], 'tid');

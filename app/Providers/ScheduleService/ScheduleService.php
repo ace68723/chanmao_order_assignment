@@ -252,6 +252,9 @@ class ScheduleService{
         $driver_dict = $input['drivers'];
         $loc_dict = $input['loc_dict'];
         $dist_mat = $input['dist_mat'];
+        return $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat);
+    }
+    public function ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat) {
         foreach ($task_dict as $tid=>$task) {
             $task_dict[$tid]['location'] = $loc_dict[$task['locId']]['idx'];
         }
@@ -274,7 +277,21 @@ class ScheduleService{
         foreach ($driver_arr as $i=>$driver) {
             $driver_arr[$i]['did'] = $didMap[$driver["did"]];
         }
-        return [$task_arr, $driver_arr, $dist_mat];
+        $nLocations = count($loc_dict);
+        if ($nLocations != count($dist_mat))
+            throw new CmException('SYSTEM_ERROR','ill formatted dist matrix');
+        foreach($dist_mat as $row) {
+            if ($nLocations != count($row))
+                throw new CmException('SYSTEM_ERROR','ill formatted dist matrix');
+        }
+        $input = [
+            'tasks'=>$task_arr,
+            'drivers'=>$driver_arr,
+            'distMat'=>$dist_mat,
+            'nLocations'=>$nLocations,
+        ];
+        $ret = cmoa_schedule($input);
+        return $ret;
     }
     public function to_dist_mat($input) {
         $loc_dict = $input['locations'];

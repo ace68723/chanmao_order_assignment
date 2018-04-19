@@ -57,7 +57,7 @@ if (!extension_loaded($module_name)) {
 	$str = "Module $module_name is not compiled into PHP";
 	die("$str\n");
 }
-$input = schedule($input);
+$input = prepare_input($input);
 $ret = cmoa_schedule($input);
 var_dump($ret);
 
