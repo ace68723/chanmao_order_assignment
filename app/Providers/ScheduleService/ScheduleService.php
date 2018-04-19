@@ -43,7 +43,7 @@ class ScheduleService{
         ];
     }
 
-    private function getOrders($area) {
+    public function getOrders($area) {
         $timer = -microtime(true);
         $dt = new \DateTime($this->consts['ORDER_LIVE_HOURS'].' hour ago',
             new \DateTimeZone($this->consts['TIMEZONE']));
@@ -72,7 +72,7 @@ class ScheduleService{
         Log::debug("got ".count($res)." orders for area ".$area. " takes:".$timer." secs");
         return $res;
     }
-    private function getDrivers($area) {
+    public function getDrivers($area) {
         if (!isset($this->consts['AREA'][$area])) {
             Log::debug("unknown area code:$area");
             return [];
@@ -105,6 +105,7 @@ class ScheduleService{
             }
             $prevTask = null;
             if (!empty($order['driver_id'])) {
+                Log::debug("order ".$order['oid']." assigned to driver ".$order['driver_id']);
                 $workload[$order['driver_id']] = 1+($workload['driver_id']??0);
             }
             if ($order['status'] == 30) {
