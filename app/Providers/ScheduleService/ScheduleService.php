@@ -106,7 +106,7 @@ class ScheduleService{
             $prevTask = null;
             if (!empty($order['driver_id'])) {
                 Log::debug("order ".$order['oid']." assigned to driver ".$order['driver_id']);
-                $workload[$order['driver_id']] = 1+($workload['driver_id']??0);
+                $workload[$order['driver_id']] = 1+($workload[$order['driver_id']]??0);
             }
             if ($order['status'] == 30) {
                 if ($order['pickup'] <= 0) {
