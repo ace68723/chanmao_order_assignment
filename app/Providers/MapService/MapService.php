@@ -2,18 +2,16 @@
 namespace App\Providers\MapService;
 
 use Log;
-use Illuminate\Http\Request;
 use App\Exceptions\CmException;
 
 class MapService{
 
     public $consts;
-    public $data;
-        const CENTER = [43.78,-79.28];
-        //['LAT'=>1,'LNG'=>1.385037];//1.0/cos($this->consts['CENTER']['LAT']/180.0*3.14159)];
-        const DEG_TO_KM_RATIO = [111.1949,154.0091];//6371*1.0/180*3.14159
-        const DEG_PRECISION = 5;
-        const GRID_LEN_KM = 0.1;
+    const CENTER = [43.78,-79.28];
+    //['LAT'=>1,'LNG'=>1.385037];//1.0/cos($this->consts['CENTER']['LAT']/180.0*3.14159)];
+    const DEG_TO_KM_RATIO = [111.1949,154.0091];//6371*1.0/180*3.14159
+    const DEG_PRECISION = 5;
+    const GRID_LEN_KM = 0.1;
     public function __construct()
     {
         $this->consts = array();
@@ -134,14 +132,14 @@ class MapService{
                 $l2_dist = sqrt(($x[0]-$y[0])**2 + ($x[1]-$y[1])**2);
                 $ratio = [$elem[0]/$l2_dist, $elem[1]/$l2_dist];
                 $expw = -abs($xx[0]-$x[0])-abs($xx[1]-$x[1])-abs($yy[0]-$y[0])-abs($yy[1]-$y[1]);
-                $weight = exp($expw/100); // heuristic mean for 200*200 grid
+                $weight = exp($expw/100.0); // heuristic mean for 200*200 grid
                 $total_weight += $weight;
                 for($i=0; $i<2; $i++){
                     $total_ratio[$i] += $weight * $ratio[$i];
                 }
             }
         }
-        return $ll * $total_ratio[0]/$total_weight;
+        return (int)round($ll * $total_ratio[0]/$total_weight);
     }
     private function approx_select($missed_pairs, $quota) {
         $starts = [];

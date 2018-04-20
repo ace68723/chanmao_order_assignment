@@ -18,7 +18,7 @@ class CacheMap{
                 $arr[] = $end_loc;
                 $arr[] = json_encode(['timestamp'=>$curTime, 'du'=>$elem[0], 'di'=>$elem[1]]);
             }
-            call_user_func_array('Illuminate\Support\Facades\Redis::hmset', $arr);
+            Redis::hmset(...$arr);
         }
     }
     static public function get_dist_mat($origin_loc_arr, $end_loc_arr) {
@@ -32,7 +32,7 @@ class CacheMap{
             foreach($end_loc_arr as $end_loc) {
                 $arr[] = $end_loc;
             }
-            $ret = call_user_func_array('Illuminate\Support\Facades\Redis::hmget',$arr);
+            $ret = Redis::hmget(...$arr);
             foreach ($end_loc_arr as $i=>$end_loc) {
                 if (is_null($ret[$i])) continue;
                 $cached = json_decode($ret[$i],true);

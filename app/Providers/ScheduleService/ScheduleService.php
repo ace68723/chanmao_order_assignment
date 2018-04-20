@@ -1,7 +1,6 @@
 <?php
 namespace App\Providers\ScheduleService;
 
-require_once  __DIR__."/lib/mycurl.php";
 use Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
@@ -11,7 +10,6 @@ use App\Exceptions\CmException;
 class ScheduleService{
 
     public $consts;
-    public $data;
     public function __construct()
     {
         $this->consts = array();
@@ -32,15 +30,6 @@ class ScheduleService{
             '20' => 60*20,
             '30' => 60*30,
             '> 40' => 60*50,
-        ];
-        $this->consts['AREA'] = [
-            1=>'SC',
-            2=>'NY',
-            3=>'RH',
-            4=>'MH',
-            5=>'MH',
-            6=>'DT',
-            10=>'MI',
         ];
     }
 
@@ -72,23 +61,6 @@ class ScheduleService{
         $timer += microtime(true);
         Log::debug("got ".count($res)." orders for area ".$area. " takes:".$timer." secs");
         return $res;
-    }
-    public function getDrivers($area) {
-        if (!isset($this->consts['AREA'][$area])) {
-            Log::debug("unknown area code:$area");
-            return [];
-        }
-        $timer = -microtime(true);
-        $data = do_curl('https://www.chanmao.ca/index.php?r=MobAly10/DriverLoc', 'GET');
-        $drivers = $data['drivers']??[];
-        $ret = [];
-        foreach($drivers as $dr)
-            if ($dr['area'] == $this->consts['AREA'][$area]){
-                $ret[$dr['driver_id']] = $dr;
-            }
-        $timer += microtime(true);
-        Log::debug("got ".count($ret)." drivers for area ".$area. " takes:".$timer." secs");
-        return $ret;
     }
 
     // check consistency, remove unnecessary tasks/driver/locations, convert to the input for module
@@ -289,9 +261,9 @@ class ScheduleService{
             'distMat'=>$dist_mat,
             'nLocations'=>$nLocations,
         ];
-        Log::debug('input for calling cmoa extension:'.json_encode($input));
-        $ret = \cmoa_schedule($input);
-        Log::debug('output from cmoa extension:'.json_encode($ret));
+        Redis::set('input for calling cmoa extension:'.json_encode($input));
+        $ret = cmoa_schedule($input);
+        Redis::set('output from cmoa extension:'.json_encode($ret));
         return $ret;
     }
     public function to_dist_mat($input) {
