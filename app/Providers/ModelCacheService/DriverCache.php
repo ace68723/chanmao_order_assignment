@@ -10,7 +10,7 @@ class DriverCache{
     private $prefix;
     private $consts;
     const DEBUG_KEEP_SEC = 3600*4;
-    const QUERY_INTERVAL_SEC = 10;
+    const QUERY_INTERVAL_SEC = 3600;
 
     public function __construct($root_prefix="") {
         $this->prefix = $root_prefix.__CLASS__.":";

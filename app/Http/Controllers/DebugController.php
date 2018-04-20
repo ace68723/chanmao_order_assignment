@@ -40,11 +40,14 @@ class DebugController extends Controller
     }
 
     public function get_orders(Request $request){
+        $userObj = null;
+        $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_model_cache_service')->get('OrderCache');
         $ret = $sp->get_orders();
         return $this->format_success_ret($ret);
     }
     public function get_drivers(Request $request){
+        $userObj = null;
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_model_cache_service')->get('DriverCache');
         $ret = $sp->get_drivers($la_paras['area_id']);
