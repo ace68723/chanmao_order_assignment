@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "jobSchedule.h"
 
-const auto version = "0.1.0";
+const char* version = "0.1.0";
 double ALG::map[MAXNLOCATIONS][MAXNLOCATIONS];
 vector<CDriver> ALG::drivers;
 vector<CTask> ALG::tasks;
@@ -9,7 +9,7 @@ int ALG::nLocations;
 vector<CScheduleItem> ALG::schedule;
 
 #define IN_RANGE(x,n) ((x>=0)&&(x<n))
-#define IN_RANGE_OR_NULL(x,n) ((x==NULL_ID)||(x>=0)&&(x<n))
+#define IN_RANGE_OR_NULL(x,n) ((x==NULL_ID)||((x>=0)&&(x<n)))
 
 #define MOVING_TIME(i,j,driver) (map[i][j]*(driver).distFactor)
 
@@ -215,7 +215,6 @@ int ALG::preProcess()
                     fprintf(stderr, "delivery task not properly pre-assigned.\n");
                     return E_CONFLICT_SETTING;
                 }
-                drivers[j].designatedTasks.push_back(tasks[i].nextTask);
             }
         }
     }

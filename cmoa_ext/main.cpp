@@ -18,6 +18,7 @@ bool parseInput(Php::Parameters &paras)
     auto root = paras[0];
     Php::Value driversA = root["drivers"];
     Php::Value tasksA = root["tasks"];
+    Php::Value distMatA = root["distMat"];
     nLocations = root["nLocations"];
     drivers.clear(); tasks.clear();
     for (int i=0; i<driversA.size(); i++) {
@@ -47,6 +48,9 @@ bool parseInput(Php::Parameters &paras)
         double pnlPerSec = tasksA[i]["pnlPerSec"];
         //CTask(int tid=NULL_ID, int location=NULL_ID, CTime deadline=0, CTime readyTime=0, CRTime execTime=0, int asgnDriver=NULL_ID, int prevTask=NULL_ID, int nextTask=NULL_ID, double rwdOneTime=0, double pnlOneTime=0, double rwdPerSec=0, double pnlPerSec=0)
         tasks.push_back(CTask(tid,location,deadline,readyTime,execTime,did,prevTask,nextTask,rwdOneTime, pnlOneTime, rwdPerSec, pnlPerSec));
+    }
+    if (nLocations > distMatA.size()) {
+        return E_CONFLICT_SETTING;
     }
     for (int i=0; i<nLocations; i++) {
         for (int j=0; j<nLocations; j++) {

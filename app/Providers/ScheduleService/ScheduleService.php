@@ -289,7 +289,9 @@ class ScheduleService{
             'distMat'=>$dist_mat,
             'nLocations'=>$nLocations,
         ];
-        $ret = cmoa_schedule($input);
+        Log::debug('input for calling cmoa extension:'.json_encode($input));
+        $ret = \cmoa_schedule($input);
+        Log::debug('output from cmoa extension:'.json_encode($ret));
         return $ret;
     }
     public function to_dist_mat($input) {
