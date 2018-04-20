@@ -13,7 +13,7 @@ class DriverCache{
     const QUERY_INTERVAL_SEC = 3600;
 
     public function __construct($root_prefix="") {
-        $this->prefix = $root_prefix.__CLASS__.":";
+        $this->prefix = $root_prefix.class_basename(__CLASS__).":";
         $this->consts['AREA'] = [
             1=>'SC',
             2=>'NY',
@@ -37,8 +37,8 @@ class DriverCache{
             $dr['areaId'] = $this->consts['AREACODE_MAP'][$dr['area']] ?? -1;
         }
         $timer += microtime(true);
-        Log::debug("got ".count($ret)." drivers from remote API.". " takes:".$timer." secs");
-        return $ret;
+        Log::debug("got ".count($drivers)." drivers from remote API.". " takes:".$timer." secs");
+        return $drivers;
     }
     public function reload() {
         $drivers = $this->get_drivers_from_api();
@@ -63,7 +63,7 @@ class DriverCache{
                 function($item) use($area) { return $item['areaId']==$area;});
         }
         else {
-            $keys = Redis::keys($this->prefix."dr:".$areaId.":*");
+            $keys = Redis::keys($this->prefix."dr:".$area.":*");
             $rets = Redis::mget($keys);
             $drivers = [];
             foreach($rets as $rows) if (!is_null($rows)) {
