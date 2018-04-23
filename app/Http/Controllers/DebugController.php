@@ -34,6 +34,12 @@ class DebugController extends Controller
                 'default_value'=> -1,
             ],
         ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
+        $this->consts['REQUEST_PARAS']['get_lastlog'] = [
+            'log_type'=>[
+                'checker'=>['is_string', ],
+                'required'=>true,
+            ],
+        ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
 
         if (!$this->check_api_def())
             throw new CmException('SYSTEM_ERROR', "ERROR SETTING IN API SCHEMA");
@@ -58,6 +64,13 @@ class DebugController extends Controller
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         $ret = $sp->get_schedule($la_paras['driver_id']);
+        return $this->format_success_ret($ret);
+    }
+    public function get_lastlog(Request $request){
+        $userObj = null;
+        $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
+        $sp = app()->make('cmoa_model_cache_service')->get('LogCache');
+        $ret = $sp->get_last($la_paras['log_type']);
         return $this->format_success_ret($ret);
     }
 

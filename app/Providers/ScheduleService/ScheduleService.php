@@ -188,7 +188,9 @@ class ScheduleService{
         return $idToInt;
     }
     public function reload($area) {
-        $orders = $this->getOrders(-1);
+        $orderCache = app()->make('cmoa_model_cache_service')->get('orderCache');
+        $driverCache = app()->make('cmoa_model_cache_service')->get('driverCache');
+        $orders = $orderCache->get_orders();
         $drivers = $this->getDrivers($area);
         list($driver_dict, $task_dict, $loc_dict) = $this->preprocess($orders, $drivers, $area);
         Log::debug('preprocess returns '.count($driver_dict). ' drivers, '.
