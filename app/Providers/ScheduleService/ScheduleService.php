@@ -31,36 +31,11 @@ class ScheduleService{
             '30' => 60*30,
             '> 40' => 60*50,
         ];
-    }
-
-    public function getOrders($area) {
-        $timer = -microtime(true);
-        $dt = new \DateTime($this->consts['ORDER_LIVE_HOURS'].' hour ago',
-            new \DateTimeZone($this->consts['TIMEZONE']));
-        $whereCond = [
-            ['ob.status','>=', 10], ['ob.status','<=', 30],
-            ['ob.created', '>', $dt->format('Y-m-d H:i:s')],
-            ['ob.dltype','>=', 1], ['ob.dltype','<=', 3], ['ob.dltype', '!=', 2],
-            ['rl.area','=',0],
+        $this->consts['EXT_ERROR'] = [
+            1 => 'E_EXCEED_MAXN',
+            7 => 'E_WRONG_INDEX',
+            8 => 'E_CONFLICT_SETTING',
         ];
-        if (!is_null($area) && $area != -1) {
-            $whereCond[] = ['rb.area','=',$area];
-        }
-        $sql = DB::table('cm_order_base as ob')
-            ->join('cm_rr_base as rb', 'rb.rid','=','ob.rid')
-            ->join('cm_rr_loc as rl', 'rl.rid','=','rb.rid')
-            ->join('cm_user_address as ua', 'ua.uaid','=','ob.uaid')
-            ->join('cm_order_trace as ot', 'ot.oid','=','ob.oid')
-            ->select('ob.oid', 'ob.rid', 'ob.uid', 'ob.uaid', 'ob.pptime', 'ob.status',
-                'ot.driver_id', 'ot.initiate', 'ot.rraction', 'ot.assign', 'ot.pickup',
-                'rb.area','rl.rr_la as rr_lat', 'rl.rr_lo as rr_lng', 'rb.addr as rr_addr',
-                'ua.addr as user_addr','ua.loc_la as user_lat','ua.loc_lo as user_lng')
-             ->where($whereCond);
-        //Log::debug("sql:". $sql->toSql());
-        $res = $sql->get();
-        $timer += microtime(true);
-        Log::debug("got ".count($res)." orders for area ".$area. " takes:".$timer." secs");
-        return $res;
     }
 
     // check consistency, remove unnecessary tasks/driver/locations, convert to the input for module
@@ -73,8 +48,8 @@ class ScheduleService{
             $order = (array)$order;
             if ($order['area'] != $area) {
                 if (empty($order['driver_id'])) continue;
-                $did = $order['driver_id'];
-                if (!isset($drivers[$did]['area']) || $drivers[$did]['area'] != $this->consts['AREA'][$area]) continue;
+                $driver_id = $order['driver_id'];
+                if (!isset($drivers[$driver_id]['area']) || $drivers[$driver_id]['area'] != $this->consts['AREA'][$area]) continue;
             }
             $prevTask = null;
             if (!empty($order['driver_id'])) {
@@ -95,15 +70,15 @@ class ScheduleService{
                 $locations[$locId] = [
                     'lat'=>$order['rr_lat'],'lng'=>$order['rr_lng'],'addr'=>$order['rr_addr'],
                 ];
-                $tid = $order['oid']."P";
-                $tasks[$tid] = [
+                $task_id = $order['oid']."P";
+                $tasks[$task_id] = [
                     'oid'=>$order['oid'],
-                    'tid'=>$tid,
+                    'task_id'=>$task_id,
                     'locId'=>$locId,
                     'deadline'=>$order['rraction']+$pptime,
                     'readyTime'=>$order['rraction']+$pptime,
                     'execTime'=>$this->consts['PICKUP_SEC'],
-                    'did'=>empty($order['driver_id'])?null:$order['driver_id'],
+                    'driver_id'=>empty($order['driver_id'])?null:$order['driver_id'],
                     'prevTask'=>null,
                     'nextTask'=>$order['oid']."D",
                     'rwdOneTime'=>$this->consts['REWARD_ONETIME']['P'],
@@ -111,21 +86,21 @@ class ScheduleService{
                     'rwdPerSec'=>$this->consts['REWARD_PERSEC']['P'],
                     'pnlPerSec'=>$this->consts['PENALTY_PERSEC']['P'],
                 ];
-                $prevTask = $tid;
+                $prevTask = $task_id;
             }
             $locId = 'user-'.$order['uaid'];
             $locations[$locId] = [
                 'lat'=>$order['user_lat'],'lng'=>$order['user_lng'],'addr'=>$order['user_addr'],
             ];
-            $tid = $order['oid']."D";
-            $tasks[$tid] = [
+            $task_id = $order['oid']."D";
+            $tasks[$task_id] = [
                 'oid'=>$order['oid'],
-                'tid'=>$tid,
+                'task_id'=>$task_id,
                 'locId'=>$locId,
                 'deadline'=>$order['initiate']+$this->consts['DEADLINE_SEC'],
                 'readyTime'=>0,
                 'execTime'=>$this->consts['HANDOVER_SEC'],
-                'did'=>empty($order['driver_id'])?null:$order['driver_id'],
+                'driver_id'=>empty($order['driver_id'])?null:$order['driver_id'],
                 'prevTask'=>$prevTask,
                 'nextTask'=>null,
                 'rwdOneTime'=>$this->consts['REWARD_ONETIME']['D'],
@@ -165,7 +140,7 @@ class ScheduleService{
                 'lat'=>floatval($driver['lat']),'lng'=>floatval($driver['lng']),'addr'=>null,
             ];
             $available_drivers[$driver['driver_id']] = [
-                'did'=>$driver['driver_id'],
+                'driver_id'=>$driver['driver_id'],
                 'availableTime'=>max($curTime,$driver['valid_from']),
                 'offTime'=>$driver['valid_to'],
                 'locId'=>$locId,
@@ -176,19 +151,19 @@ class ScheduleService{
             ];
         }
         $this->fixCurTask($available_drivers, $tasks);
-        $locIds = []; $tIds = [];
+        $locIds = []; $task_ids = [];
         foreach($tasks as $task) {
-            if (!empty($task['did']) && !isset($available_drivers[$task['did']])) {
-                Log::debug("ignoring task".$task['tid']." assigned to unavailable drivers ".$task['did']);
+            if (!empty($task['driver_id']) && !isset($available_drivers[$task['driver_id']])) {
+                Log::debug("ignoring task".$task['task_id']." assigned to unavailable drivers ".$task['driver_id']);
                 continue;
             }
             $locIds[$task['locId']] = 1;
-            $tIds[$task['tid']] = 1;
+            $task_ids[$task['task_id']] = 1;
         }
         foreach($available_drivers as $driver) {
             $locIds[$driver['locId']] = 1;
         }
-        $tasks = array_where($tasks, function($value, $key) use($tIds) {return isset($tIds[$key]);});
+        $tasks = array_where($tasks, function($value, $key) use($task_ids) {return isset($task_ids[$key]);});
         $locations = array_where($locations, function($value, $key) use($locIds) {return isset($locIds[$key]);});
         return [$available_drivers, $tasks, $locations];
     }
@@ -225,30 +200,33 @@ class ScheduleService{
         $driver_dict = $input['drivers'];
         $loc_dict = $input['loc_dict'];
         $dist_mat = $input['dist_mat'];
-        return $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat);
+        $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat);
+        $schCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
+        $scheCache->set_schedules($schedules, time());
+        return $schedules;
     }
     public function ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat) {
-        foreach ($task_dict as $tid=>$task) {
-            $task_dict[$tid]['location'] = $loc_dict[$task['locId']]['idx'];
+        foreach ($task_dict as $task_id=>$task) {
+            $task_dict[$task_id]['location'] = $loc_dict[$task['locId']]['idx'];
         }
-        foreach ($driver_dict as $did=>$driver) {
-            $driver_dict[$did]['location'] = $loc_dict[$driver['locId']]['idx'];
+        foreach ($driver_dict as $driver_id=>$driver) {
+            $driver_dict[$driver_id]['location'] = $loc_dict[$driver['locId']]['idx'];
         }
         $task_arr = array_values($task_dict);
         $driver_arr = array_values($driver_dict);
-        $tidMap = $this->keyToIdx($task_arr, 'tid');
-        $didMap = $this->keyToIdx($driver_arr, 'did');
+        $tidMap = $this->keyToIdx($task_arr, 'task_id');
+        $didMap = $this->keyToIdx($driver_arr, 'driver_id');
         foreach ($task_arr as $i=>$task) {
-            $did = ($didMap[$task["did"]??null])??-1;
+            $driver_id = ($didMap[$task["driver_id"]??null])??-1;
             $prevTask = $tidMap[$task["prevTask"]??null]??-1;
             $nextTask = $tidMap[$task["nextTask"]??null]??-1;
             $task_arr[$i]['prevTask'] = $prevTask;
             $task_arr[$i]['nextTask'] = $nextTask;
-            $task_arr[$i]['did'] = $did;
-            $task_arr[$i]['tid'] = $tidMap[$task['tid']];
+            $task_arr[$i]['did'] = $driver_id;
+            $task_arr[$i]['tid'] = $tidMap[$task['task_id']];
         }
         foreach ($driver_arr as $i=>$driver) {
-            $driver_arr[$i]['did'] = $didMap[$driver["did"]];
+            $driver_arr[$i]['did'] = $didMap[$driver["driver_id"]];
         }
         $nLocations = count($dist_mat);
         foreach($dist_mat as $row) {
@@ -261,10 +239,30 @@ class ScheduleService{
             'distMat'=>$dist_mat,
             'nLocations'=>$nLocations,
         ];
-        Redis::set('input for calling cmoa extension:'.json_encode($input));
+        $logCache = app()->make('cmoa_model_cache_service')->get('LogCache');
+        $logCache->log('cmoa_ext_input', $input);
         $ret = cmoa_schedule($input);
-        Redis::set('output from cmoa extension:'.json_encode($ret));
-        return $ret;
+        $logCache->log('cmoa_ext_output', $ret);
+        if ($ret['ev_error'] != 0) {
+            throw new CmException('SYSTEM_ERROR', 'extension_returned_error:'.$ret['ev_error']
+                .':'.($this->consts[$ret['ev_error']]??'unknown error code'));
+        }
+        $schedules = [];
+        foreach($ret['schedules'] as $sche) {
+            $driver = $driver_arr[$sche['did']];
+            $newDriverItem = ['driver_id'=>$driver['driver_id'], 'tasks'=>[]];
+            foreach($sche['tids'] as $i=>$tid) {
+                $newTaskItem = [
+                    'task_id'=>$task_arr[$tid]['task_id'],
+                    'completeTime'=>$sche['completeTime'][$i],
+                    'locId'=>$task_arr[$tid]['locId'],
+                ];
+                $newTaskItem['location'] = $loc_dict[$newTaskItem['locId']];
+                $newDriverItem['tasks'][] = $newTaskItem;
+            }
+            $schedules[$driver['driver_id']] = $newDriverItem;
+        }
+        return $schedules;
     }
     public function to_dist_mat($input) {
         $loc_dict = $input['locations'];
