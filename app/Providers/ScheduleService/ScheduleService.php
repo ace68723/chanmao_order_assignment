@@ -199,7 +199,7 @@ class ScheduleService{
         $loc_dict = $input['loc_dict'];
         $dist_mat = $input['dist_mat'];
         $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat);
-        $schCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
+        $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         $scheCache->set_schedules($schedules, time());
         return $schedules;
     }

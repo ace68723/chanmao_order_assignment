@@ -47,7 +47,7 @@ class ScheduleController extends Controller
         $loc_dict = $request->json()->all()['locations'];
         $map_sp = app()->make('cmoa_map_service');
         $dist_mat = $map_sp->get_dist_mat($loc_dict);
-        return [$loc_dict, $dist_mat];
+        return ['loc_dict'=>$loc_dict, 'dist_mat'=>$dist_mat];
     }
 
 }

@@ -106,7 +106,10 @@ class MapService{
             foreach($rows as $end_loc=>$elem) {
                 if ($start_loc == $end_loc) continue;
                 $dist_mat[$start_loc][$end_loc] = $elem[0];
-                unset($missed_pairs[$start_loc][$end_loc]);
+                if (isset($missed_pairs[$start_loc][$end_loc])) {
+                    $nn--;
+                    unset($missed_pairs[$start_loc][$end_loc]);
+                }
             }
         }
         Log::debug("after query, missing ".$nn." pairs");
