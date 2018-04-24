@@ -2,6 +2,7 @@
 namespace App\Providers\ModelCacheService;
 
 use Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use App\Exceptions\CmException;
 
@@ -67,7 +68,7 @@ class OrderCache{
         foreach($rets as $rows) if (!is_null($rows)) {
             $orders[] = json_decode($rows, true);
         }
-        Log::debug("read ".count($orders)." orders:".json_encode($orders));
+        Log::debug("read ".count($orders)." orders");
         return $orders;
     }
 }

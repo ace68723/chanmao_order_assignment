@@ -2,8 +2,6 @@
 namespace App\Providers\ScheduleService;
 
 use Log;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redis;
 use Illuminate\Http\Request;
 use App\Exceptions\CmException;
 
@@ -189,7 +187,7 @@ class ScheduleService{
         $orderCache = app()->make('cmoa_model_cache_service')->get('OrderCache');
         $driverCache = app()->make('cmoa_model_cache_service')->get('DriverCache');
         $orders = $orderCache->get_orders();
-        $drivers = $this->getDrivers($area);
+        $drivers = $driverCache->get_drivers($area);
         list($driver_dict, $task_dict, $loc_dict) = $this->preprocess($orders, $drivers, $area);
         Log::debug('preprocess returns '.count($driver_dict). ' drivers, '.
             count($task_dict).' tasks and '.count($loc_dict).' locations');

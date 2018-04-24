@@ -70,7 +70,7 @@ class DriverCache{
                 $drivers[] = json_decode($rows, true);
             }
         }
-        Log::debug("read ".count($drivers)." drivers for area $area:".json_encode($drivers));
+        Log::debug("read ".count($drivers)." drivers for area $area:");
         return $drivers;
     }
 }

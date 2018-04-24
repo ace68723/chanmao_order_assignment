@@ -14,7 +14,7 @@ class ScheduleCache{
     public function __construct($root_prefix="") {
         $this->prefix = $root_prefix.class_basename(__CLASS__).":";
         $this->key_table = $this->prefix."scheduleTable";
-        $this->key_updatedAt = $this->prefix.$key.":updatedAt";
+        $this->key_updatedAt = $this->prefix."updatedAt";
     }
     public function set_schedules($schedules, $updatedAt) {
         Redis::setex($this->key_updatedAt, self::KEEP_SECS, $updatedAt);
