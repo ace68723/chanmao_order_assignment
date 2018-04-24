@@ -84,7 +84,7 @@ class ScheduleService{
                 ];
                 $prevTask = $task_id;
             }
-            $locId = 'user-'.$order['uaid'];
+            $locId = 'ua-'.$order['uaid'];
             $locations[$locId] = [
                 'lat'=>$order['user_lat'],'lng'=>$order['user_lng'],'addr'=>$order['user_addr'],
             ];
@@ -255,7 +255,7 @@ class ScheduleService{
                     'completeTime'=>$sche['completeTime'][$i],
                     'locId'=>$task_arr[$tid]['locId'],
                 ];
-                $newTaskItem['location'] = $loc_dict[$newTaskItem['locId']];
+                $newTaskItem['location'] = array_only($loc_dict[$newTaskItem['locId']],['lat','lng','addr','adjustLatLng','gridId']);
                 $newDriverItem['tasks'][] = $newTaskItem;
             }
             $schedules[$driver['driver_id']] = $newDriverItem;

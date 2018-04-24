@@ -59,16 +59,13 @@ class DriverCache{
         $updatedAt = is_null($updatedAt) ? 0 : (int)$updatedAt;
         $curTime = time();
         if ($curTime - $updatedAt > self::QUERY_INTERVAL_SEC) {
-            $drivers = array_filter($this->reload(),
-                function($item) use($area) { return $item['areaId']==$area;});
+            $this->reload();
         }
-        else {
-            $keys = Redis::keys($this->prefix."dr:".$area.":*");
-            $rets = Redis::mget($keys);
-            $drivers = [];
-            foreach($rets as $rows) if (!is_null($rows)) {
-                $drivers[] = json_decode($rows, true);
-            }
+        $keys = Redis::keys($this->prefix."dr:".$area.":*");
+        $rets = Redis::mget($keys);
+        $drivers = [];
+        foreach($rets as $rows) if (!is_null($rows)) {
+            $drivers[] = json_decode($rows, true);
         }
         Log::debug("read ".count($drivers)." drivers for area $area:");
         return $drivers;

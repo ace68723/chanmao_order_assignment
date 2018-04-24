@@ -37,7 +37,7 @@ class OrderCache{
             ->join('cm_order_trace as ot', 'ot.oid','=','ob.oid')
             ->select('ob.oid', 'ob.rid', 'ob.uid', 'ob.uaid', 'ob.pptime', 'ob.status',
                 'ot.driver_id', 'ot.initiate', 'ot.rraction', 'ot.assign', 'ot.pickup',
-                'rb.area','rl.rr_la as rr_lat', 'rl.rr_lo as rr_lng', 'rb.addr as rr_addr',
+                'rb.area','rl.rr_la as rr_lat', 'rl.rr_lo as rr_lng', 'rb.addr as rr_addr','rb.name as rr_name',
                 'ua.addr as user_addr','ua.loc_la as user_lat','ua.loc_lo as user_lng')
              ->where($whereCond);
         //Log::debug("sql:". $sql->toSql());
