@@ -13,10 +13,12 @@ class OrderCache{
 
     public function __construct($root_prefix="") {
         $this->prefix = $root_prefix.class_basename(__CLASS__).":";
+        $this->consts['TIMEZONE'] = 'America/Toronto';
+        $this->consts['FETCH_ORDER_AGO_HOURS'] = 4;
     }
     public function get_orders_from_remote($area=-1) {
         $timer = -microtime(true);
-        $dt = new \DateTime($this->consts['ORDER_LIVE_HOURS'].' hour ago',
+        $dt = new \DateTime($this->consts['FETCH_ORDER_AGO_HOURS'].' hour ago',
             new \DateTimeZone($this->consts['TIMEZONE']));
         $whereCond = [
             ['ob.status','>=', 10], ['ob.status','<=', 30],

@@ -21,8 +21,6 @@ class ScheduleService{
         $this->consts['REWARD_PERSEC'] = ['D'=>0.1,'P'=>0];
         $this->consts['PENALTY_ONETIME'] = ['D'=>0,'P'=>0];
         $this->consts['PENALTY_PERSEC'] = ['D'=>0.1,'P'=>0.01];
-        $this->consts['TIMEZONE'] = 'America/Toronto';
-        $this->consts['ORDER_LIVE_HOURS'] = 4; //load orders created in the last x hours
         $this->consts['DRIVER_LIVE_SEC'] = 4*3600; //for how long the driver's location stays usable
         $this->consts['PPTIME'] = [
             'default'=>60*20,
@@ -188,8 +186,8 @@ class ScheduleService{
         return $idToInt;
     }
     public function reload($area) {
-        $orderCache = app()->make('cmoa_model_cache_service')->get('orderCache');
-        $driverCache = app()->make('cmoa_model_cache_service')->get('driverCache');
+        $orderCache = app()->make('cmoa_model_cache_service')->get('OrderCache');
+        $driverCache = app()->make('cmoa_model_cache_service')->get('DriverCache');
         $orders = $orderCache->get_orders();
         $drivers = $this->getDrivers($area);
         list($driver_dict, $task_dict, $loc_dict) = $this->preprocess($orders, $drivers, $area);
