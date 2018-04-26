@@ -209,8 +209,8 @@ class ScheduleService{
         $drivers = $driverCache->get_drivers($area);
         list($driver_dict, $task_dict, $basic_loc_dict, $curTasks) = $this->preprocess($orders, $drivers, $area);
         Log::debug('preprocess returns '.count($driver_dict). ' drivers, '.
-            count($task_dict).' tasks and '.count($loc_dict).' locations');
-        return ['tasks'=>$task_dict, 'drivers'=>$driver_dict, 'basic_loc_dict'=>$basic_loc_dict,
+            count($task_dict).' tasks and '.count($basic_loc_dict).' locations');
+        return ['task_dict'=>$task_dict, 'driver_dict'=>$driver_dict, 'basic_loc_dict'=>$basic_loc_dict,
             'curTasks'=>$curTasks];
     }
     private function calc_input_sign($input) {
@@ -229,8 +229,8 @@ class ScheduleService{
     }
     private function do_schedule($input) {
         $map_sp = app()->make('cmoa_map_service');
-        $task_dict = $input['tasks'];
-        $driver_dict = $input['drivers'];
+        $task_dict = $input['task_dict'];
+        $driver_dict = $input['driver_dict'];
         $curTasks = $input['curTasks'];
         $loc_dict = $input['basic_loc_dict']; //enriched in the get_dist_mat call
         $dist_mat = $map_sp->get_dist_mat($loc_dict);
@@ -247,7 +247,7 @@ class ScheduleService{
         $old_input_sign = $uniCache->get('signScheInput');
         $new_input_sign = $this->calc_input_sign($input);
         if ($old_input_sign != $new_input_sign) {
-            $schedules = $this->do_schedules();
+            $schedules = $this->do_schedule($input);
         }
         else {
             $schedules = $scheCache->get_schedules();
@@ -302,14 +302,17 @@ class ScheduleService{
             $newDriverItem = ['driver_id'=>$driver['driver_id'], 'tasks'=>[]];
             if (!empty($curTasks[$driver['driver_id']]['tasks']))
                 $newDriverItem['tasks'] = $curTasks[$driver['driver_id']]['tasks'];
-            foreach($sche['tids'] as $i=>$tid) {
-                $newTaskItem = [
-                    'task_id'=>$task_arr[$tid]['task_id'],
-                    'completeTime'=>$sche['completeTime'][$i],
-                    'locId'=>$task_arr[$tid]['locId'],
-                ];
-                $newTaskItem['location'] = array_only($loc_dict[$newTaskItem['locId']],['lat','lng','addr','adjustLatLng','gridId']);
-                $newDriverItem['tasks'][] = $newTaskItem;
+            if (!empty($sche['tids'])) {
+                foreach($sche['tids'] as $i=>$tid) {
+                    $newTaskItem = [
+                        'task_id'=>$task_arr[$tid]['task_id'],
+                        'completeTime'=>$sche['completeTime'][$i],
+                        'locId'=>$task_arr[$tid]['locId'],
+                    ];
+                    $newTaskItem['location'] = array_only($loc_dict[$newTaskItem['locId']],
+                        ['lat','lng','addr','adjustLatLng','gridId']);
+                    $newDriverItem['tasks'][] = $newTaskItem;
+                }
             }
             $schedules[$driver['driver_id']] = $newDriverItem;
         }
