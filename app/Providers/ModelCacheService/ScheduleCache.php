@@ -26,7 +26,7 @@ class ScheduleCache{
             Redis::setex($this->key_table.":".$driver_id, self::KEEP_SECS, json_encode($sche));
         }
     }
-    public function get_schedule($driver_id=null) {
+    public function get_schedules($driver_id=null) {
         if (is_null($driver_id)) {
             $keys = Redis::keys($this->key_table.":*");
             $dataArr = Redis::mget(...$keys);

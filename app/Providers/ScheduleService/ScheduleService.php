@@ -142,13 +142,29 @@ class ScheduleService{
                 'locId'=>$locId,
                 'maxNOrder'=>$maxNOrder,
                 'distFactor'=>$driver['distFactor']??1.0,
-                'pickFactor'=>$driver['pickFactor']??1,
-                'deliFactor'=>$driver['deliFactor']??1,
+                'pickFactor'=>$driver['pickFactor']??1.0,
+                'deliFactor'=>$driver['deliFactor']??1.0,
             ];
         }
-        $this->fixCurTask($available_drivers, $tasks);
-        $locIds = []; $task_ids = [];
+        $curTasks = $this->get_curTasks($available_drivers);
+        $locIds = []; $task_ids = []; $fixed_task_ids = [];
+        foreach($curTasks as $driver_id=>$fixedSche) {
+            if (!isset($available_drivers[$driver_id])) continue;
+            foreach($fixedSche['tasks'] as $fixedTask) {
+                $fixed_task_ids[$fixedTask['task_id']] = 1;
+                $available_drivers[$driver_id]['availableTime'] = $fixedTask['completeTime'];
+                $available_drivers[$driver_id]['locId'] = $fixedTask['locId'];
+                if (!isset($locations[$fixedTask['locId']])) {
+                    $locations[$fixedTask['locId']] = array_only($fixedTask['location'], ['lat','lng','addr']);
+                    Log::debug("add location ".$fixedTask['locId']." from fixed task ".$fixedTask['task_id']);
+                }
+            }
+        }
         foreach($tasks as $task) {
+            if (isset($fixed_task_ids[$task['task_id']])) {
+                Log::debug("ignoring fixed task ".$task['task_id']);
+                continue;
+            }
             if (!empty($task['driver_id']) && !isset($available_drivers[$task['driver_id']])) {
                 Log::debug("ignoring task".$task['task_id']." assigned to unavailable drivers ".$task['driver_id']);
                 continue;
@@ -161,14 +177,15 @@ class ScheduleService{
         }
         $tasks = array_where($tasks, function($value, $key) use($task_ids) {return isset($task_ids[$key]);});
         $locations = array_where($locations, function($value, $key) use($locIds) {return isset($locIds[$key]);});
-        return [$available_drivers, $tasks, $locations];
+        return [$available_drivers, $tasks, $locations, $curTasks];
     }
-    private function map_service_get_dist($drivers, $tasks, $locations) {
-        Log::debug("processed locations:".json_encode($locations));
-        return [];
-    }
-    private function fixCurTask(&$drivers, &$tasks) {
-        return;
+    private function get_curTasks() {
+        $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
+        $prevSche = $scheCache->get_schedules();
+        foreach($prevSche as $driver_id=>$sche) if (count($sche['tasks'])>1) {
+            $prevSche[$driver_id]['tasks'] = array_slice($sche['tasks'],0,1);
+        }
+        return $prevSche;
     }
     private function keyToIdx($arr, $id_name) {
         $idToInt = [];
@@ -188,22 +205,54 @@ class ScheduleService{
         $driverCache = app()->make('cmoa_model_cache_service')->get('DriverCache');
         $orders = $orderCache->get_orders();
         $drivers = $driverCache->get_drivers($area);
-        list($driver_dict, $task_dict, $loc_dict) = $this->preprocess($orders, $drivers, $area);
+        list($driver_dict, $task_dict, $basic_loc_dict, $curTasks) = $this->preprocess($orders, $drivers, $area);
         Log::debug('preprocess returns '.count($driver_dict). ' drivers, '.
             count($task_dict).' tasks and '.count($loc_dict).' locations');
-        return ['tasks'=>$task_dict, 'drivers'=>$driver_dict, 'locations'=>$loc_dict];
+        return ['tasks'=>$task_dict, 'drivers'=>$driver_dict, 'basic_loc_dict'=>$basic_loc_dict,
+            'curTasks'=>$curTasks];
     }
-    public function sim($input) {
+    private function calc_input_sign($input) {
+        $signStr = '';
+        $tasks = $input['task_dict'];
+        ksort($tasks);
+        foreach($tasks as $v) {
+            $signStr .= json_encode(array_only($v,['task_id','driver_id']));
+        }
+        $drivers = $input['driver_dict'];
+        ksort($drivers);
+        foreach($drivers as $v) {
+            $signStr .= json_encode(array_only($v,['driver_id','locId','maxNOrder']));
+        }
+        return md5($signStr);
+    }
+    private function do_schedule($input) {
+        $map_sp = app()->make('cmoa_map_service');
         $task_dict = $input['tasks'];
         $driver_dict = $input['drivers'];
-        $loc_dict = $input['loc_dict'];
-        $dist_mat = $input['dist_mat'];
-        $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat);
-        $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
+        $curTasks = $input['curTasks'];
+        $loc_dict = $input['basic_loc_dict']; //enriched in the get_dist_mat call
+        $dist_mat = $map_sp->get_dist_mat($loc_dict);
+        $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $curTasks);
         $scheCache->set_schedules($schedules, time());
+        $uniCache->set('interData', array_only($input, ['task_dict','driver_dict']));
+        $uniCache->set('signScheInput', $new_input_sign);
         return $schedules;
     }
-    public function ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat) {
+    public function run($area) {
+        $input = $this->reload($area);
+        $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
+        $uniCache = app()->make('cmoa_model_cache_service')->get('UniCache');
+        $old_input_sign = $uniCache->get('signScheInput');
+        $new_input_sign = $this->calc_input_sign($input);
+        if ($old_input_sign != $new_input_sign) {
+            $schedules = $this->do_schedules();
+        }
+        else {
+            $schedules = $scheCache->get_schedules();
+        }
+        return $schedules;
+    }
+    public function ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $curTasks) {
         foreach ($task_dict as $task_id=>$task) {
             $task_dict[$task_id]['location'] = $loc_dict[$task['locId']]['idx'];
         }
@@ -249,6 +298,8 @@ class ScheduleService{
         foreach($ret['schedules'] as $sche) {
             $driver = $driver_arr[$sche['did']];
             $newDriverItem = ['driver_id'=>$driver['driver_id'], 'tasks'=>[]];
+            if (!empty($curTasks[$driver['driver_id']]['tasks']))
+                $newDriverItem['tasks'] = $curTasks[$driver['driver_id']]['tasks'];
             foreach($sche['tids'] as $i=>$tid) {
                 $newTaskItem = [
                     'task_id'=>$task_arr[$tid]['task_id'],
@@ -261,11 +312,5 @@ class ScheduleService{
             $schedules[$driver['driver_id']] = $newDriverItem;
         }
         return $schedules;
-    }
-    public function to_dist_mat($input) {
-        $loc_dict = $input['locations'];
-        $map_sp = app()->make('cmoa_map_service');
-        $dist_mat = $map_sp->get_dist_mat($loc_dict);
-        return ['loc_dict'=>$loc_dict, 'dist_mat'=>$dist_mat];
     }
 }

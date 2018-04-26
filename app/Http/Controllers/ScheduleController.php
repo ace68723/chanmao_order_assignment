@@ -24,16 +24,22 @@ class ScheduleController extends Controller
                 'required'=>true,
             ],
         ];
-        $this->consts['REQUEST_PARAS']['sim'] = [
+        $this->consts['REQUEST_PARAS']['run'] = [
+            'area'=>[
+                'checker'=>['is_int',],
+                'required'=>true,
+            ],
         ];
 
         if (!$this->check_api_def())
             throw new CmException('SYSTEM_ERROR', "ERROR SETTING IN API SCHEMA");
     }
 
-    public function sim(Request $request){
+    public function run(Request $request){
+        $userObj = null;//$request->user('custom_token');
+        $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_schedule_service');
-        $ret = $sp->sim($request->json()->all());
+        $ret = $sp->run($la_paras['area']);
         return $this->format_success_ret($ret);
     }
     public function reload(Request $request){

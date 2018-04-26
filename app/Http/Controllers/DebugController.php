@@ -64,7 +64,7 @@ class DebugController extends Controller
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         if ($la_paras['driver_id']<=0) $la_paras['driver_id'] = null;
-        $ret = $sp->get_schedule($la_paras['driver_id']);
+        $ret = $sp->get_schedules($la_paras['driver_id']);
         return $this->format_success_ret($ret);
     }
     public function get_lastlog(Request $request){
