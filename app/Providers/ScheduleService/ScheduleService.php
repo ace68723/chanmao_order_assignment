@@ -45,7 +45,9 @@ class ScheduleService{
             if ($order['area'] != $area) {
                 if (empty($order['driver_id'])) continue;
                 $driver_id = $order['driver_id'];
-                if (!isset($drivers[$driver_id]['area']) || $drivers[$driver_id]['area'] != $this->consts['AREA'][$area]) continue;
+                if (!isset($drivers[$driver_id]['areaId']) ||
+                    $drivers[$driver_id]['areaId'] != $area)
+                    continue;
             }
             $prevTask = null;
             if (!empty($order['driver_id'])) {
