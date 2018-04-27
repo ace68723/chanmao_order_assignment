@@ -69,7 +69,7 @@ class OrderCache{
         foreach($rets as $rows) if (!is_null($rows)) {
             $orders[] = json_decode($rows, true);
         }
-        Log::debug("read ".count($orders)." orders");
+        Log::debug("read ".count($orders)." orders:".json_encode(array_pluck($orders,'oid')));
         return $orders;
     }
 }

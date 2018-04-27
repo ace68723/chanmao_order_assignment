@@ -303,6 +303,7 @@ class ScheduleService{
                 .':'.($this->consts[$ret['ev_error']]??'unknown error code'));
         }
         $schedules = [];
+        if (is_null($ret['schedules'])) $ret['schedules'] = [];
         foreach($ret['schedules'] as $sche) {
             $driver = $driver_arr[$sche['did']];
             $newDriverItem = ['driver_id'=>$driver['driver_id'], 'tasks'=>[]];
