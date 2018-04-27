@@ -152,13 +152,22 @@ class ScheduleService{
         $locIds = []; $task_ids = []; $fixed_task_ids = [];
         foreach($curTasks as $driver_id=>$fixedSche) {
             if (!isset($available_drivers[$driver_id])) continue;
+            $task_changed = false;
+            foreach($fixedSche['tasks'] as $fixedTask) {
+                if (!isset($tasks[$fixedTask['task_id']])) {
+                    $task_changed = true;
+                    break;
+                }
+            }
+            if ($task_changed) continue;
             foreach($fixedSche['tasks'] as $fixedTask) {
                 $fixed_task_ids[$fixedTask['task_id']] = 1;
                 $available_drivers[$driver_id]['availableTime'] = $fixedTask['completeTime'];
                 $available_drivers[$driver_id]['locId'] = $fixedTask['locId'];
                 if (!isset($locations[$fixedTask['locId']])) {
-                    $locations[$fixedTask['locId']] = array_only($fixedTask['location'], ['lat','lng','addr']);
-                    Log::debug("add location ".$fixedTask['locId']." from fixed task ".$fixedTask['task_id']);
+                    throw new CmException('SYSTEM_ERROR', 'unknown location introduced by curTask');
+                    //$locations[$fixedTask['locId']] = array_only($fixedTask['location'], ['lat','lng','addr']);
+                    //Log::debug("add location ".$fixedTask['locId']." from fixed task ".$fixedTask['task_id']);
                 }
             }
         }
@@ -227,27 +236,22 @@ class ScheduleService{
         }
         return md5($signStr);
     }
-    private function do_schedule($input) {
-        $map_sp = app()->make('cmoa_map_service');
-        $task_dict = $input['task_dict'];
-        $driver_dict = $input['driver_dict'];
-        $curTasks = $input['curTasks'];
-        $loc_dict = $input['basic_loc_dict']; //enriched in the get_dist_mat call
-        $dist_mat = $map_sp->get_dist_mat($loc_dict);
-        $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $curTasks);
-        $scheCache->set_schedules($schedules, time());
-        $uniCache->set('interData', array_only($input, ['task_dict','driver_dict']));
-        $uniCache->set('signScheInput', $new_input_sign);
-        return $schedules;
-    }
-    public function run($area) {
+    public function run($area, $force_redo = false) {
         $input = $this->reload($area);
         $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         $uniCache = app()->make('cmoa_model_cache_service')->get('UniCache');
-        $old_input_sign = $uniCache->get('signScheInput');
         $new_input_sign = $this->calc_input_sign($input);
-        if ($old_input_sign != $new_input_sign) {
-            $schedules = $this->do_schedule($input);
+        if ($force_redo || $uniCache->get('signScheInput') != $new_input_sign) {
+            $map_sp = app()->make('cmoa_map_service');
+            $task_dict = $input['task_dict'];
+            $driver_dict = $input['driver_dict'];
+            $curTasks = $input['curTasks'];
+            $loc_dict = $input['basic_loc_dict']; //enriched in the get_dist_mat call
+            $dist_mat = $map_sp->get_dist_mat($loc_dict);
+            $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $curTasks);
+            $scheCache->set_schedules($schedules, time());
+            $uniCache->set('interData', array_only($input, ['task_dict','driver_dict']));
+            $uniCache->set('signScheInput', $new_input_sign);
         }
         else {
             $schedules = $scheCache->get_schedules();
