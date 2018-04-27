@@ -29,7 +29,8 @@ class ScheduleCache{
     public function get_schedules($driver_id=null) {
         if (is_null($driver_id)) {
             $keys = Redis::keys($this->key_table.":*");
-            $dataArr = Redis::mget(...$keys);
+            if (empty($keys)) return [];
+            $dataArr = Redis::mget($keys);
             $data = [];
             foreach($dataArr as $dataStr) {
                 if (is_null($dataStr)) continue;

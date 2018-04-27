@@ -10,7 +10,7 @@ class OrderCache{
     private $prefix;
     private $consts;
     const DEBUG_KEEP_SEC = 3600*4;
-    const QUERY_INTERVAL_SEC = 3600;
+    const QUERY_INTERVAL_SEC = 60;
 
     public function __construct($root_prefix="") {
         $this->prefix = $root_prefix.class_basename(__CLASS__).":";
@@ -63,6 +63,7 @@ class OrderCache{
             $this->reload();
         }
         $keys = Redis::keys($this->prefix."order:*");
+        if (empty($keys)) return [];
         $rets = Redis::mget($keys);
         $orders = [];
         foreach($rets as $rows) if (!is_null($rows)) {
