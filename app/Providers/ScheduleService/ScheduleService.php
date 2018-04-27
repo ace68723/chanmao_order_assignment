@@ -234,6 +234,8 @@ class ScheduleService{
         foreach($drivers as $v) {
             $signStr .= json_encode(array_only($v,['driver_id','locId','maxNOrder']));
         }
+        $uniCache = app()->make('cmoa_model_cache_service')->get('UniCache');
+        $uniCache->set('cmoa_input_signStr', $input);
         return md5($signStr);
     }
     public function run($area, $force_redo = false) {
