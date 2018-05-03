@@ -35,18 +35,18 @@ class ScheduleService{
     }
 
     // check consistency, remove unnecessary tasks/driver/locations, convert to the input for module
-    private function preprocess($orders, $drivers, $area) {
+    private function preprocess($orders, $drivers, $areaId) {
         $curTime = time();
         $tasks = [];
         $locations = [];
         $workload = [];
         foreach($orders as $order) {
             $order = (array)$order;
-            if ($order['area'] != $area) {
+            if ($order['area'] != $areaId) {
                 if (empty($order['driver_id'])) continue;
                 $driver_id = $order['driver_id'];
                 if (!isset($drivers[$driver_id]['areaId']) ||
-                    $drivers[$driver_id]['areaId'] != $area)
+                    $drivers[$driver_id]['areaId'] != $areaId)
                     continue;
             }
             $prevTask = null;
@@ -139,6 +139,7 @@ class ScheduleService{
             ];
             $available_drivers[$driver['driver_id']] = [
                 'driver_id'=>$driver['driver_id'],
+                'areaId'=>$driver['areaId'],
                 'availableTime'=>max($curTime,$driver['valid_from']),
                 'offTime'=>$driver['valid_to'],
                 'locId'=>$locId,
@@ -218,12 +219,12 @@ class ScheduleService{
         }
         return $idToInt;
     }
-    public function reload($area) {
+    public function reload($areaId) {
         $orderCache = app()->make('cmoa_model_cache_service')->get('OrderCache');
         $driverCache = app()->make('cmoa_model_cache_service')->get('DriverCache');
         $orders = $orderCache->get_orders();
-        $drivers = $driverCache->get_drivers($area);
-        list($driver_dict, $task_dict, $basic_loc_dict, $curTasks) = $this->preprocess($orders, $drivers, $area);
+        $drivers = $driverCache->get_drivers($areaId);
+        list($driver_dict, $task_dict, $basic_loc_dict, $curTasks) = $this->preprocess($orders, $drivers, $areaId);
         Log::debug('preprocess returns '.count($driver_dict). ' drivers, '.
             count($task_dict).' tasks and '.count($basic_loc_dict).' locations');
         return ['task_dict'=>$task_dict, 'driver_dict'=>$driver_dict, 'basic_loc_dict'=>$basic_loc_dict,
@@ -245,8 +246,8 @@ class ScheduleService{
         $uniCache->set('cmoa_input_signStr', $signStr);
         return md5($signStr);
     }
-    public function run($area, $force_redo = false) {
-        $input = $this->reload($area);
+    public function run($areaId, $force_redo = false) {
+        $input = $this->reload($areaId);
         $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         $uniCache = app()->make('cmoa_model_cache_service')->get('UniCache');
         $new_input_sign = $this->calc_input_sign($input);
@@ -263,7 +264,7 @@ class ScheduleService{
             $uniCache->set('signScheInput', $new_input_sign);
         }
         else {
-            $schedules = $scheCache->get_schedules();
+            $schedules = $scheCache->get_schedules(null, $areaId);
         }
         return $schedules;
     }
@@ -313,7 +314,9 @@ class ScheduleService{
         if (is_null($ret['schedules'])) $ret['schedules'] = [];
         foreach($ret['schedules'] as $sche) {
             $driver = $driver_arr[$sche['did']];
-            $newDriverItem = ['driver_id'=>$driver['driver_id'], 'tasks'=>[]];
+            $newDriverItem = ['driver_id'=>$driver['driver_id'],
+                'areaId'=>$driver['areaId'],
+                'tasks'=>[]];
             if (!empty($curTasks[$driver['driver_id']]['tasks']))
                 $newDriverItem['tasks'] = $curTasks[$driver['driver_id']]['tasks'];
             if (!empty($sche['tids'])) {

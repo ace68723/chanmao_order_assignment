@@ -27,7 +27,7 @@ class ScheduleCache{
             Redis::setex($this->key_table.":".$driver_id, self::KEEP_SECS, json_encode($sche));
         }
     }
-    public function get_schedules($driver_id=null) {
+    public function get_schedules($driver_id=null, $areaId=null) {
         if (is_null($driver_id)) {
             $curTime = time();
             $keys = Redis::keys($this->key_table.":*");
@@ -37,7 +37,8 @@ class ScheduleCache{
             foreach($dataArr as $dataStr) {
                 if (is_null($dataStr)) continue;
                 $sche = json_decode($dataStr,true);
-                if ($sche['updatedAt']-$curTime > self::SHOW_SECS) continue;
+                if (!is_null($areaId) && isset($sche['areaId']) && $sche['areaId'] != $areaId) continue;
+                if ($curTime - $sche['updatedAt']> self::SHOW_SECS) continue;
                 $data[$sche['driver_id']] = $sche;
             }
             return $data;
