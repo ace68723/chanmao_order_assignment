@@ -10,6 +10,7 @@ class ScheduleCache{
     private $key_table;
     private $key_updatedAt;
     const KEEP_SECS = 24*3600*7;
+    const SHOW_SECS = 4*3600;
 
     public function __construct($root_prefix="") {
         $this->prefix = $root_prefix.class_basename(__CLASS__).":";
@@ -28,6 +29,7 @@ class ScheduleCache{
     }
     public function get_schedules($driver_id=null) {
         if (is_null($driver_id)) {
+            $curTime = time();
             $keys = Redis::keys($this->key_table.":*");
             if (empty($keys)) return [];
             $dataArr = Redis::mget($keys);
@@ -35,6 +37,7 @@ class ScheduleCache{
             foreach($dataArr as $dataStr) {
                 if (is_null($dataStr)) continue;
                 $sche = json_decode($dataStr,true);
+                if ($sche['updatedAt']-$curTime > self::SHOW_SECS) continue;
                 $data[$sche['driver_id']] = $sche;
             }
             return $data;

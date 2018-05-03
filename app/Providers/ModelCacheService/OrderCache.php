@@ -26,6 +26,7 @@ class OrderCache{
             ['ob.created', '>', $dt->format('Y-m-d H:i:s')],
             ['ob.dltype','>=', 1], ['ob.dltype','<=', 3], ['ob.dltype', '!=', 2],
             ['rl.area','=',0],
+            ['ob.rid','!=',5], //escape test merchant
         ];
         if (!is_null($area) && $area != -1) {
             $whereCond[] = ['rb.area','=',$area];

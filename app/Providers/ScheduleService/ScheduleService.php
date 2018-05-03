@@ -149,9 +149,12 @@ class ScheduleService{
             ];
         }
         $curTasks = $this->get_curTasks($available_drivers);
-        $locIds = []; $task_ids = []; $fixed_task_ids = [];
+        $locIds = []; $task_ids = []; $fixed_task_ids = []; $temp = [];
         foreach($curTasks as $driver_id=>$fixedSche) {
-            if (!isset($available_drivers[$driver_id])) continue;
+            if (!isset($available_drivers[$driver_id])) {
+                $temp[] = $driver_id;
+                continue;
+            }
             $task_changed = false;
             foreach($fixedSche['tasks'] as $fixedTask) {
                 if (!isset($tasks[$fixedTask['task_id']])) {
@@ -159,7 +162,10 @@ class ScheduleService{
                     break;
                 }
             }
-            if ($task_changed) continue;
+            if ($task_changed) {
+                $temp[] = $driver_id;
+                continue;
+            }
             foreach($fixedSche['tasks'] as $fixedTask) {
                 $fixed_task_ids[$fixedTask['task_id']] = 1;
                 $available_drivers[$driver_id]['availableTime'] = $fixedTask['completeTime'];
@@ -171,6 +177,7 @@ class ScheduleService{
                 }
             }
         }
+        foreach($temp as $driver_id) unset($curTasks[$driver_id]);
         foreach($tasks as $task) {
             if (isset($fixed_task_ids[$task['task_id']])) {
                 Log::debug("ignoring fixed task ".$task['task_id']);
@@ -235,7 +242,7 @@ class ScheduleService{
             $signStr .= json_encode(array_only($v,['driver_id','locId','maxNOrder']));
         }
         $uniCache = app()->make('cmoa_model_cache_service')->get('UniCache');
-        $uniCache->set('cmoa_input_signStr', $input);
+        $uniCache->set('cmoa_input_signStr', $signStr);
         return md5($signStr);
     }
     public function run($area, $force_redo = false) {
