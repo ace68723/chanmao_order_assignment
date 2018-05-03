@@ -57,7 +57,7 @@ class GoogleMapProxy{
         catch(\Exception $e) {
             Log::debug('google map api error:'.$e->getMessage());
         }
-        Log::debug("googlemap return:".json_encode($dist_mat_dict));
+        //Log::debug("googlemap return:".json_encode($dist_mat_dict));
         return $dist_mat_dict;
     }
 }

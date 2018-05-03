@@ -170,7 +170,7 @@ class MapService{
                 list($nEle, $sel_start, $sel_end) = [$temp_nEle, $temp_start, $temp_end];
             }
         }
-        Log::debug("from ".json_encode([$starts, $ends])." select ".json_encode([$sel_start, $sel_end]));
+        //Log::debug("from ".json_encode([$starts, $ends])." select ".json_encode([$sel_start, $sel_end]));
         return [$sel_start, $sel_end];
     }
     private function count_cover($sel_start, $sel_end, $missed_pairs) {

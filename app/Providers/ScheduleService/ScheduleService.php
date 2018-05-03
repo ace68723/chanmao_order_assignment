@@ -51,7 +51,7 @@ class ScheduleService{
             }
             $prevTask = null;
             if (!empty($order['driver_id'])) {
-                Log::debug("order ".$order['oid']." assigned to driver ".$order['driver_id']);
+                //Log::debug("order ".$order['oid']." assigned to driver ".$order['driver_id']);
                 $workload[$order['driver_id']] = 1+($workload[$order['driver_id']]??0);
             }
             if ($order['status'] == 30) {
@@ -181,11 +181,11 @@ class ScheduleService{
         foreach($temp as $driver_id) unset($curTasks[$driver_id]);
         foreach($tasks as $task) {
             if (isset($fixed_task_ids[$task['task_id']])) {
-                Log::debug("ignoring fixed task ".$task['task_id']);
+                //Log::debug("ignore fixed task ".$task['task_id']);
                 continue;
             }
             if (!empty($task['driver_id']) && !isset($available_drivers[$task['driver_id']])) {
-                Log::debug("ignoring task".$task['task_id']." assigned to unavailable drivers ".$task['driver_id']);
+                //Log::debug("ignore task".$task['task_id']." assigned to unavailable drivers ".$task['driver_id']);
                 continue;
             }
             $locIds[$task['locId']] = 1;
