@@ -81,7 +81,13 @@ class MapService{
     }
     private function dist_approx($origin_loc_arr, $dest_loc_arr) {
         $cached_mat = CacheMap::get_dist_mat($origin_loc_arr, $dest_loc_arr);
-        $dist_mat = $cached_mat;
+        $dist_mat = [];
+        foreach ($cached_mat as $start_loc=>$rows) {
+            foreach($rows as $end_loc=>$elem) {
+                if ($start_loc == $end_loc) continue;
+                $dist_mat[$start_loc][$end_loc] = $elem[0];
+            }
+        }
         $missed_pairs = [];
         $nn = 0;
         foreach($origin_loc_arr as $origin_loc) {
