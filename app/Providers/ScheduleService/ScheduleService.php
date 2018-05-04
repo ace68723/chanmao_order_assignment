@@ -140,6 +140,7 @@ class ScheduleService{
             $available_drivers[$driver['driver_id']] = [
                 'driver_id'=>$driver['driver_id'],
                 'areaId'=>$driver['areaId'],
+                'passback_loc'=>[$driver['lat'],$driver['lng'],],
                 'availableTime'=>max($curTime,$driver['valid_from']),
                 'offTime'=>$driver['valid_to'],
                 'locId'=>$locId,
@@ -316,6 +317,7 @@ class ScheduleService{
             $driver = $driver_arr[$sche['did']];
             $newDriverItem = ['driver_id'=>$driver['driver_id'],
                 'areaId'=>$driver['areaId'],
+                'passback_loc'=>$driver['passback_loc'],
                 'tasks'=>[]];
             if (!empty($curTasks[$driver['driver_id']]['tasks']))
                 $newDriverItem['tasks'] = $curTasks[$driver['driver_id']]['tasks'];
