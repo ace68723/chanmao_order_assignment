@@ -40,13 +40,14 @@ class ScheduleService{
         $tasks = [];
         $locations = [];
         $workload = [];
+        $driverArea = [];
+        foreach($drivers as $driver) { $driverArea[$driver['driver_id']] = $driver['areaId'];}
         foreach($orders as $order) {
             $order = (array)$order;
             if ($order['area'] != $areaId) {
                 if (empty($order['driver_id'])) continue;
                 $driver_id = $order['driver_id'];
-                if (!isset($drivers[$driver_id]['areaId']) ||
-                    $drivers[$driver_id]['areaId'] != $areaId)
+                if (!isset($driverArea[$driver_id]) || $driverArea[$driver_id] != $areaId)
                     continue;
             }
             $prevTask = null;
