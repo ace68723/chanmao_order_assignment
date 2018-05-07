@@ -12,6 +12,7 @@ class MapService{
     const DEG_TO_KM_RATIO = [111.1949,154.0091];//6371*1.0/180*3.14159
     const DEG_PRECISION = 5;
     const GRID_LEN_KM = 0.1;
+    const HEURISTIC_RATIO = 11.875;
     public function __construct()
     {
         $this->consts = array();
@@ -102,29 +103,43 @@ class MapService{
         Log::debug("cache missing ".$nn." pairs");
         if (empty($missed_pairs)) return $dist_mat;
         $quota = GoogleMapProxy::get_quota();
-        if ($quota <= 5) {
-            throw new CmException('SYSTEM_ERROR', "out of quota");
-        }
-        list($sel_origins, $sel_dests) = $this->approx_select($missed_pairs, $quota);
-        $sel_mat = GoogleMapProxy::get_dist_mat($sel_origins, $sel_dests);
-        CacheMap::set_dist_mat($sel_mat);
-        foreach ($sel_mat as $start_loc=>$rows) {
-            foreach($rows as $end_loc=>$elem) {
-                if ($start_loc == $end_loc) continue;
-                $dist_mat[$start_loc][$end_loc] = $elem[0];
-                if (isset($missed_pairs[$start_loc][$end_loc])) {
-                    $nn--;
-                    unset($missed_pairs[$start_loc][$end_loc]);
+        if ($quota <= 2500) {
+            //throw new CmException('SYSTEM_ERROR', "out of quota");
+            Log::debug("insufficient quota, using fixed ratio approx");
+            foreach ($missed_pairs as $start_loc=>$missed_rows) {
+                foreach ($missed_rows as $end_loc=>$missed_elem) {
+                    $dist_mat[$start_loc][$end_loc] = $this->fixed_ratio_approx($start_loc, $end_loc, self::HEURISTIC_RATIO);
                 }
             }
         }
-        Log::debug("after query, missing ".$nn." pairs");
-        foreach ($missed_pairs as $start_loc=>$missed_rows) {
-            foreach ($missed_rows as $end_loc=>$missed_elem) {
-                $dist_mat[$start_loc][$end_loc] = $this->weighted_approx($start_loc, $end_loc, $sel_mat);
+        else {
+            list($sel_origins, $sel_dests) = $this->approx_select($missed_pairs, $quota);
+            $sel_mat = GoogleMapProxy::get_dist_mat($sel_origins, $sel_dests);
+            CacheMap::set_dist_mat($sel_mat);
+            foreach ($sel_mat as $start_loc=>$rows) {
+                foreach($rows as $end_loc=>$elem) {
+                    if ($start_loc == $end_loc) continue;
+                    $dist_mat[$start_loc][$end_loc] = $elem[0];
+                    if (isset($missed_pairs[$start_loc][$end_loc])) {
+                        $nn--;
+                        unset($missed_pairs[$start_loc][$end_loc]);
+                    }
+                }
+            }
+            Log::debug("after query, missing ".$nn." pairs");
+            foreach ($missed_pairs as $start_loc=>$missed_rows) {
+                foreach ($missed_rows as $end_loc=>$missed_elem) {
+                    $dist_mat[$start_loc][$end_loc] = $this->weighted_approx($start_loc, $end_loc, $sel_mat);
+                }
             }
         }
         return $dist_mat;
+    }
+    private function fixed_ratio_approx($start_loc, $end_loc, $ratio) {
+        $xx = self::toGridIdx(explode(',',$start_loc));
+        $yy = self::toGridIdx(explode(',',$end_loc));
+        $ll = sqrt(($xx[0]-$yy[0])**2 + ($xx[1]-$yy[1])**2);
+        return (int)round($ll * $ratio);
     }
     private function weighted_approx($start_loc, $end_loc, $base_mat) {
         $total_weight = 0;
