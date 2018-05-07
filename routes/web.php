@@ -25,6 +25,7 @@ $router->group(['prefix'=>'api/v1/schedule', 'middleware'=>'auth:custom_token'],
     }
     $api_names = [
         'get_drivers', 'get_orders', 'get_schedule', 'get_lastlog', 'get_unicache',
+        'calc_mean_ratio',
     ];
     foreach($api_names as $api_name) {
         $router->post('/'.$api_name.'/', ['uses'=>'DebugController@'.$api_name]);

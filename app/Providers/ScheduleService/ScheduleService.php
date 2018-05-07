@@ -126,7 +126,7 @@ class ScheduleService{
             $thisworkload = ($workload[$driver['driver_id']]??0);
             $otherWorkload = 0;
             if ($driver['workload'] != $thisworkload) {
-                Log::debug('driver '.$driver['driver_id'].' workload mismatch:'.$driver['workload'].' find orders:'.$thisworkload);
+                Log::warn('driver '.$driver['driver_id'].' workload mismatch:'.$driver['workload'].' find orders:'.$thisworkload);
                 $otherWorkload = max(0, $driver['workload']-$thisworkload);
             }
             $maxNOrder = ($driver['maxNOrder']??5)-$otherWorkload;

@@ -43,7 +43,27 @@ class CacheMap{
                 $n++;
             }
         }
-        Log::debug("read $n cached items:".json_encode($dist_mat));
+        //Log::debug("read $n cached items:".json_encode($dist_mat));
+        Log::debug(__FUNCTION__.":read $n cached items:");
         return $dist_mat;
+    }
+    static public function calc_mean_ratio($to_ratio) {
+        $ratio = 0;
+        $key_prefix = self::PREFIX . "distMat:";
+        $fullkeys = Redis::keys($key_prefix."*");
+        $n = 0;
+        foreach ($fullkeys as $fullkey) {
+            $start_loc = substr($fullkey, strrpos($fullkey, ":")+1);
+            $ret = Redis::hgetll($fullkey);
+            for($i=0; $i<count($ret); $i++) {
+                $end_loc = $ret[$i];
+                $i++;
+                if (is_null($ret[$i])) continue;
+                $cached = json_decode($ret[$i],true);
+                $ratio += $to_ratio($start_loc, $end_loc, [$cached['du'],$cached['di']]);
+                $n++;
+            }
+        }
+        return ($n>0)? $ratio/$n : null;
     }
 }

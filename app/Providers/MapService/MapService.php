@@ -188,4 +188,13 @@ class MapService{
         }
         return $nEle;
     }
+    public function calc_mean_ratio() {
+        $to_ratio = function($start_loc, $end_loc, $cached) {
+            $xx = self::toGridIdx(explode(',',$start_loc));
+            $yy = self::toGridIdx(explode(',',$end_loc));
+            $ll = sqrt(($xx[0]-$yy[0])**2 + ($xx[1]-$yy[1])**2);
+            return $cached[0]*1.0/$ll;
+        };
+        return CacheMap::calc_mean_ratio($to_ratio);
+    }
 }
