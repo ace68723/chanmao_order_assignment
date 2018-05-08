@@ -10,7 +10,7 @@ class ScheduleCache{
     private $key_table;
     private $key_updatedAt;
     const KEEP_SECS = 24*3600*7;
-    const SHOW_SECS = 4*3600;
+    const SHOW_SECS = 3600;
 
     public function __construct($root_prefix="") {
         $this->prefix = $root_prefix.class_basename(__CLASS__).":";

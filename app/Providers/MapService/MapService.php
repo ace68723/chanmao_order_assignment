@@ -103,7 +103,7 @@ class MapService{
         Log::debug("cache missing ".$nn." pairs");
         if (empty($missed_pairs)) return $dist_mat;
         $quota = GoogleMapProxy::get_quota();
-        if ($quota <= 2500) {
+        if ($quota <= 12) {
             //throw new CmException('SYSTEM_ERROR', "out of quota");
             Log::debug("insufficient quota, using fixed ratio approx");
             foreach ($missed_pairs as $start_loc=>$missed_rows) {

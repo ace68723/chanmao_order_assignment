@@ -151,7 +151,8 @@ class ScheduleService{
                 'deliFactor'=>$driver['deliFactor']??1.0,
             ];
         }
-        $curTasks = $this->get_curTasks($available_drivers);
+        //$curTasks = $this->get_curTasks($available_drivers);
+        $curTasks = []; //should not fix curTasks if this is not the driver's choice
         $locIds = []; $task_ids = []; $fixed_task_ids = []; $temp = [];
         foreach($curTasks as $driver_id=>$fixedSche) {
             if (!isset($available_drivers[$driver_id])) {
@@ -265,9 +266,7 @@ class ScheduleService{
             $uniCache->set('interData', array_only($input, ['task_dict','driver_dict']));
             $uniCache->set('signScheInput', $new_input_sign);
         }
-        else {
-            $schedules = $scheCache->get_schedules(null, $areaId);
-        }
+        $schedules = $scheCache->get_schedules(null, $areaId);
         return $schedules;
     }
     public function ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $curTasks) {

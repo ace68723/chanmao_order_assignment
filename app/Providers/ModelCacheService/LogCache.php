@@ -15,6 +15,7 @@ class LogCache{
     public function log($key, $data) {
         $curTime = time();
         $fullkey = $this->prefix.$key.":lastLogTime";
+        Log::debug('add log cache '.$key.':'.$curTime);
         Redis::setex($fullkey, self::LOG_KEEP_SECS, $curTime);
         $fullkey = $this->prefix.$key.":".$curTime;
         Redis::setex($fullkey, self::LOG_KEEP_SECS, json_encode($data));
