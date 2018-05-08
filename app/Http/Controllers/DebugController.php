@@ -96,7 +96,8 @@ class DebugController extends Controller
             $ret = $sp->get_last($la_paras['log_type']);
         }
         else {
-            $ret = $sp->get($la_paras['log_type'], $la_paras['timestamp']);
+            list($logTime, $ret) = $sp->get($la_paras['log_type'], $la_paras['timestamp']);
+            $ret['logTime'] = $logTime;
         }
         return $this->format_success_ret($ret);
     }

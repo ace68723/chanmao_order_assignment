@@ -30,6 +30,6 @@ class LogCache{
         if (empty($lastLogTime)) {
             return null;
         }
-        return $this->get($key, $lastLogTime);
+        return [$lastLogTime, $this->get($key, $lastLogTime)];
     }
 }

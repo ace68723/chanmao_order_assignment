@@ -165,6 +165,10 @@ class MapService{
         }
         return (int)round($ll * $total_ratio[0]/$total_weight);
     }
+    private function my_array_random($arr, $n) {
+        //quick fix for the wierd return of array_rand; TODO: get a better one
+        return  ($n == 1) ? [array_rand($arr,$n)]:array_rand($arr,$n);
+    }
     private function approx_select($missed_pairs, $quota) {
         $starts = [];
         $ends = [];
@@ -178,14 +182,14 @@ class MapService{
         }
         $nStart = min(count($starts),3);
         $nEnd = min(count($ends),4);
-        $sel_start = array_rand($starts, $nStart);
-        $sel_end = array_rand($ends, $nEnd);
+        $sel_start = $this->my_array_random($starts, $nStart);
+        $sel_end = $this->my_array_random($ends, $nEnd);
         $nEle = $this->count_cover($sel_start, $sel_end, $missed_pairs);
         for($ntry = 0; $ntry < 5; $ntry++) {
             if ($nStart == count($starts) && $nEnd == count($ends)) break;
             if ($nEle == $nMissed) break;
-            $temp_start = array_rand($starts, $nStart);
-            $temp_end = array_rand($ends, $nEnd);
+            $temp_start = $this->my_array_random($starts, $nStart);
+            $temp_end = $this->my_array_random($ends, $nEnd);
             $temp_nEle = $this->count_cover($temp_start, $temp_end, $missed_pairs);
             if ($temp_nEle > $nEle) {
                 list($nEle, $sel_start, $sel_end) = [$temp_nEle, $temp_start, $temp_end];
