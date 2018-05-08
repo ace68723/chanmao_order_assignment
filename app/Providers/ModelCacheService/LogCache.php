@@ -20,13 +20,16 @@ class LogCache{
         $fullkey = $this->prefix.$key.":".$curTime;
         Redis::setex($fullkey, self::LOG_KEEP_SECS, json_encode($data));
     }
+    public function get($key, $timestamp) {
+        $fullkey = $this->prefix.$key.":".$timestamp;
+        $dataStr = Redis::get($fullkey);
+        return is_null($dataStr)? null: json_decode($dataStr,true);
+    }
     public function get_last($key) {
         $lastLogTime = Redis::get($this->prefix.$key.":lastLogTime");
         if (empty($lastLogTime)) {
             return null;
         }
-        $fullkey = $this->prefix.$key.":".$lastLogTime;
-        $dataStr = Redis::get($fullkey);
-        return is_null($dataStr)? null: json_decode($dataStr,true);
+        return $this->get($key, $lastLogTime);
     }
 }

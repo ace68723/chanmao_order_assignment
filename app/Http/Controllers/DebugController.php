@@ -36,10 +36,16 @@ class DebugController extends Controller
                 'default_value'=> -1,
             ],
         ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
-        $this->consts['REQUEST_PARAS']['get_lastlog'] = [
+        $this->consts['REQUEST_PARAS']['get_log'] = [
             'log_type'=>[
                 'checker'=>['is_string', ],
                 'required'=>true,
+            ],
+            'timestamp'=>[
+                'checker'=>['is_int', ],
+                'required'=>false,
+                'description'=> '-1/unset to get last',
+                'default_value'=> -1,
             ],
         ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
         $this->consts['REQUEST_PARAS']['get_unicache'] = [
@@ -82,11 +88,16 @@ class DebugController extends Controller
         $ret = $sp->get_schedules($la_paras['driver_id']);
         return $this->format_success_ret($ret);
     }
-    public function get_lastlog(Request $request){
+    public function get_log(Request $request){
         $userObj = null;
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_model_cache_service')->get('LogCache');
-        $ret = $sp->get_last($la_paras['log_type']);
+        if ($la_paras['timestamp'] <= 0) {
+            $ret = $sp->get_last($la_paras['log_type']);
+        }
+        else {
+            $ret = $sp->get($la_paras['log_type'], $la_paras['timestamp']);
+        }
         return $this->format_success_ret($ret);
     }
     public function get_unicache(Request $request){
