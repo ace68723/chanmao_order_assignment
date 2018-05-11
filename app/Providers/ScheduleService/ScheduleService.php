@@ -12,13 +12,17 @@ class ScheduleService{
     {
         $this->consts = array();
         $this->consts['MAXNLOCATIONS'] = 100;
-        $this->consts['DEADLINE_SEC'] = 60*80; //promised time, from initiate to deliver: 1h20min
-        $this->consts['HANDOVER_SEC'] = 60*7; //7 min to hand over to customer
-        $this->consts['PICKUP_SEC'] = 60*5; //5 min to hand over to customer
-        $this->consts['REWARD_ONETIME'] = ['D'=>100,'P'=>0];
+        $this->consts['DEADLINE_SEC'] = 60*60; //expected complete time, from initiate to deliver
+        $this->consts['EXT_DEADLINE'] = [
+            'DIST_THRESHOLD_GRID'=> 30, //according to current setting 1 grid ~ 100m
+            'SEC_PER_GRID'=> 12,
+        ];
+        $this->consts['HANDOVER_SEC'] = 60*4; //1~5 min for house, 10 min for condo
+        $this->consts['PICKUP_SEC'] = 60*4; //4 min to pickup
+        $this->consts['REWARD_ONETIME'] = ['D'=>6,'P'=>0]; // gap value in the evaluation function
         $this->consts['REWARD_PERSEC'] = ['D'=>0.1,'P'=>0];
-        $this->consts['PENALTY_ONETIME'] = ['D'=>0,'P'=>0];
-        $this->consts['PENALTY_PERSEC'] = ['D'=>0.1,'P'=>0.01];
+        $this->consts['PENALTY_ONETIME'] = ['D'=>0,'P'=>0]; //maybe deprecate this
+        $this->consts['PENALTY_PERSEC'] = ['D'=>0.5,'P'=>0.05];
         $this->consts['DRIVER_LIVE_SEC'] = 4*3600; //for how long the driver's location stays usable
         $this->consts['PPTIME'] = [
             'default'=>60*20,
@@ -118,11 +122,10 @@ class ScheduleService{
                 Log::debug("ignore driver ".$driver['driver_id']." because of lost position");
                 continue;
             }
-            if ($curTime >= $driver['valid_to']) {
+            if ($curTime >= $driver['valid_to'] || $curTime <$driver['valid_from']) {
                 Log::debug("ignore driver ".$driver['driver_id']." because of off work");
                 continue;
             }
-            //if ($curTime < $driver['valid_from']) continue; //??
             $thisworkload = ($workload[$driver['driver_id']]??0);
             $otherWorkload = 0;
             if ($driver['workload'] != $thisworkload) {
@@ -251,13 +254,16 @@ class ScheduleService{
     }
     public function run($areaId, $force_redo = false) {
         $input = $this->reload($areaId);
+        $task_dict = $input['task_dict'];
+        $driver_dict = $input['driver_dict'];
+        if (count($task_dict)==0 || count($driver_dict)==0) {
+            return $scheCache->get_schedules(null, $areaId);
+        }
         $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         $uniCache = app()->make('cmoa_model_cache_service')->get('UniCache');
         $new_input_sign = $this->calc_input_sign($input);
         if ($force_redo || $uniCache->get('signScheInput') != $new_input_sign) {
             $map_sp = app()->make('cmoa_map_service');
-            $task_dict = $input['task_dict'];
-            $driver_dict = $input['driver_dict'];
             $curTasks = $input['curTasks'];
             $loc_dict = $input['basic_loc_dict']; //enriched in the get_dist_mat call
             $dist_mat = $map_sp->get_dist_mat($loc_dict);
