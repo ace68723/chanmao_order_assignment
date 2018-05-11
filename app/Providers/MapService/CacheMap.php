@@ -9,6 +9,21 @@ class CacheMap{
     const PREFIX = "cmoa:map:";
     const KEEP_ALIVE_SEC = 3600*24;
 
+    static public function set_element($curTime, $start_id, $end_id, $caseId, $dudiArr) {
+        $key = self::PREFIX . "pair:".$start_id.":".$end_id;
+        $oldval = Redis::hget($key, $caseId);
+        if (empty($oldval)) {
+            Redis::hmset($key, 'dist', json_encode($dudiArr[1]));
+        }
+        foreach ($dist_mat as $start_loc=>$rows) {
+            $arr = [$key_prefix.$start_loc];
+            foreach($rows as $end_loc=>$elem) {
+                $arr[] = $end_loc;
+                $arr[] = json_encode(['timestamp'=>$curTime, 'du'=>$elem[0], 'di'=>$elem[1]]);
+            }
+            Redis::hmset(...$arr);
+        }
+    }
     static public function set_dist_mat($dist_mat) {
         $key_prefix = self::PREFIX . "distMat:";
         $curTime = time();

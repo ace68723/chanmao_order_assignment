@@ -108,5 +108,12 @@ class DebugController extends Controller
         $ret = $sp->get($la_paras['log_type']);
         return $this->format_success_ret($ret);
     }
+    public function test_map(Request $request) {
+        $ret = S2::fromLatLng(45.234, -79.1111);
+        //$loc_dict = $request->json()->all()['locations'];
+        //$map_sp = app()->make('cmoa_map_service');
+        //$ret = $map_sp->get_dist_mat($loc_dict);
+        return $this->format_success_ret($ret);
+    }
 
 }
