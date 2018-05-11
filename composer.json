@@ -10,7 +10,8 @@
 	"illuminate/redis": "^5.5",
 	"firebase/php-jwt": "^5.0",
         "vlucas/phpdotenv": "~2.2",
-        "guzzlehttp/guzzle": "^6.3"
+        "guzzlehttp/guzzle": "^6.3",
+        "nicklasw/s2-geometry-library-php": "^2.0"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",
