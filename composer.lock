@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "05d6d79bb5614b3c612eb45c31a69e6a",
+    "content-hash": "a3f69244f66d12409937d93eb3dac3ab",
     "packages": [
         {
             "name": "doctrine/inflector",
@@ -1659,6 +1659,33 @@
                 "time"
             ],
             "time": "2018-04-16T14:54:26+00:00"
+        },
+        {
+            "name": "nicklasw/s2-geometry-library-php",
+            "version": "v2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/NicklasWallgren/s2-geometry-library-php.git",
+                "reference": "a657efe66018b1ed1b7b67899712b0ae6de1f600"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/NicklasWallgren/s2-geometry-library-php/zipball/a657efe66018b1ed1b7b67899712b0ae6de1f600",
+                "reference": "a657efe66018b1ed1b7b67899712b0ae6de1f600",
+                "shasum": ""
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^5.4"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "description": "Fork - Port of s2-geometry-library-java into PHP",
+            "time": "2016-08-31T10:17:06+00:00"
         },
         {
             "name": "nikic/fast-route",
