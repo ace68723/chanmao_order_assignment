@@ -111,7 +111,8 @@ class DebugController extends Controller
         return $this->format_success_ret($ret);
     }
     public function test_map(Request $request) {
-        $ret = S2::fromLatLng(S2LatLng::fromDegrees(45.234, -79.1111));
+        //$ret = S2CellId::fromLatLng(S2LatLng::fromDegrees(45.234, -79.1111));
+        $ret = (new S2CellId(5560388600765437049))->toLatLng()->toStringDegrees();
         //$loc_dict = $request->json()->all()['locations'];
         //$map_sp = app()->make('cmoa_map_service');
         //$ret = $map_sp->get_dist_mat($loc_dict);
