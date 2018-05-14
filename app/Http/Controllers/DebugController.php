@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use Log;
-use S2\S2CellId;
-use S2\S2LatLng;
+use S2;
 use Illuminate\Http\Request;
 use App\Exceptions\CmException;
 
@@ -111,8 +110,16 @@ class DebugController extends Controller
         return $this->format_success_ret($ret);
     }
     public function test_map(Request $request) {
+        $ret = [];
+        $center = S2\S2CellId::fromLatLng(S2\S2LatLng::fromDegrees(45.234, -79.1111));
+        $level = 16;
+        $center = $center->parent($level);
+        $bound = (new S2\S2Cell($center))->getRectBound();
+        $ret = [$center, $bound];
+        $dirs = [[0,1],[1,0],[-1,0],[0,-1]];
+        $prec = 0.00001;
         //$ret = S2CellId::fromLatLng(S2LatLng::fromDegrees(45.234, -79.1111));
-        $ret = (new S2CellId(5560388600765437049))->toLatLng()->toStringDegrees();
+        //$ret = (new S2CellId(5560388600765437049))->toLatLng()->toStringDegrees();
         //$loc_dict = $request->json()->all()['locations'];
         //$map_sp = app()->make('cmoa_map_service');
         //$ret = $map_sp->get_dist_mat($loc_dict);
