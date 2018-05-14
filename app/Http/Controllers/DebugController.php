@@ -115,7 +115,9 @@ class DebugController extends Controller
         $level = 16;
         $center = $center->parent($level);
         $bound = (new S2\S2Cell($center))->getRectBound();
-        $ret = [$center, $bound];
+        $lo = $bound->lo();
+        $hi = $bound->hi();
+        $ret = [$center, $lo->toStringDegrees(),$hi->toStringDegrees()];
         $dirs = [[0,1],[1,0],[-1,0],[0,-1]];
         $prec = 0.00001;
         //$ret = S2CellId::fromLatLng(S2LatLng::fromDegrees(45.234, -79.1111));
