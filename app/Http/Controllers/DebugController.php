@@ -110,6 +110,9 @@ class DebugController extends Controller
         return $this->format_success_ret($ret);
     }
     public function test_map(Request $request) {
+        $map_sp = app()->make('cmoa_map_service');
+        $ret = $map_sp->test();
+        return $this->format_success_ret($ret);
         $ret = [];
         $center = S2\S2CellId::fromLatLng(S2\S2LatLng::fromDegrees(45.234, -79.1111));
         $level = 16;

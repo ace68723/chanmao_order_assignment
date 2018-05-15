@@ -36,6 +36,9 @@ class MapService{
         }
         return $ret;
     }
+    public function test() {
+        return CacheMap::test();
+    }
 
     /*
      * [in] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str}]

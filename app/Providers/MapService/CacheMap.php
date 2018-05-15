@@ -17,10 +17,10 @@ class CacheMap{
 
     static public function LatLngToPairId($start_lat, $start_lng, $end_lat, $end_lng) {
         $startCellId = S2\S2CellId::fromLatLng(S2\S2LatLng::fromDegrees($start_lat, $start_lng))
-            ->parent(self::S2CELL_LEVEL);
+            ->parent(self::S2CELL_LEVEL)->id();
         $endCellId = S2\S2CellId::fromLatLng(S2\S2LatLng::fromDegrees($end_lat, $end_lng))
-            ->parent(self::S2CELL_LEVEL);
-        return $startCellId."-".$endCellId;
+            ->parent(self::S2CELL_LEVEL)->id();
+        return dechex($startCellId)."-".dechex($endCellId);
     }
     static public function ToPairId($start_loc, $end_loc) {
         $paras = [];
@@ -74,8 +74,8 @@ class CacheMap{
         }
     }
     static public function test() {
-        $start_loc = "45,-79";
-        $end_loc = "46,-80";
+        $start_loc = "43,-79";
+        $end_loc = "43,-80";
         return self::ToPairId($start_loc,$end_loc);
     }
     static private function accumlate(&$tuple, $value, $curTime) {
