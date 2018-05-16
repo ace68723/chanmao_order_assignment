@@ -11,7 +11,7 @@ class CacheMap{
     const KEEP_ALIVE_SEC = 3600*24;
     const DEG_PRECISION = 5;
     const REDIS_BATCH_SIZE = 50; //TODO change to a larger one, this is for test
-    const S2CELL_LEVEL = 19;//lvl 19 cell is about 20m*20m
+    const S2CELL_LEVEL = 19;//must >= 14; lvl 19 cell is about 20m*20m
     const S2CELL_MAX_SEARCH_LEVEL = 10;//must be even; lvl 10 cell is about 10km*10km
     const ACCU_MIN_INTER = 3600;
     const ACCU_MAX_INTER = 3600*24*7;
@@ -21,11 +21,9 @@ class CacheMap{
             ->parent(self::S2CELL_LEVEL)->id();
         $endCellId = S2\S2CellId::fromLatLng(S2\S2LatLng::fromDegrees($end_lat, $end_lng))
             ->parent(self::S2CELL_LEVEL)->id();
-        $x = self::intToToken($startCellId);
-        $y = self::intToToken($endCellId);
-        return $x."-".$y;
+        return self::idsToToken([$startCellId, $endCellId]);
     }
-    static public function ToPairId($start_loc, $end_loc) {
+    static public function ExtLocToPairId($start_loc, $end_loc) {
         $paras = [];
         foreach([$start_loc,$end_loc] as $loc_str) {
             $arr = explode(',',$loc_str);
@@ -33,6 +31,15 @@ class CacheMap{
             $paras[] = floatval($arr[1]);
         }
         return self::LatLngToPairId(...$paras);
+    }
+    static public function PairIdToExtLoc($pairId) {
+        $ids = self::tokenToIds($pairId);
+        $ret = [];
+        foreach($ids as $cellId) {
+            $latlng = S2\S2CellId($cellId)->toLatLng();
+            $ret[] = $latlng->toStringDegrees();
+        }
+        return $ret;
     }
     static public function get_mat($origin_loc_arr, $end_loc_arr) {
         $key_prefix = self::PREFIX . "pair:";
@@ -79,8 +86,9 @@ class CacheMap{
     static public function test() {
         $start_loc = "43,-79";
         $end_loc = "43,-80";
-        $pairId = self::ToPairId($start_loc,$end_loc);
-        return [$pairId];
+        $pairId = self::ExtLocToPairId($start_loc,$end_loc);
+        $recovered = self::PairIdToExtLoc($pairId);
+        return [$pairId, $recovered];
     }
     static private function accumlate(&$tuple, $value, $curTime) {
         $ratio = 0.9;
@@ -216,19 +224,48 @@ class CacheMap{
         return ($n>0)? $ratio/$n : null;
     }
      */
+    static private function idsToToken($ids) {
+        $strs = [];
+        for($i=0; $i<2; $i++) {
+            $strs[$i] = decbin($id);
+            $l = strlen($strs[$i]);
+            if ($l < 64) $strs[$i] = str_repeat('0',64-$l).$strs[$i];
+        }
+        $merged = "";
+        for($i=0; $i<64; $i++) $merged .= $strs[0][$i].$strs[1][$i];
+        $h = bindec(substr($merged, 0, 64));
+        $l = bindec(substr($merged, 64, 64));
+        return dechex($h).substr(dechex($l), 0, 30-self::S2CELL_LEVEL);
+    }
+    static private function tokenToIds($tok) {
+        $tok = $tok.str_repeat('0',32-strlen($tok));
+        $hl = [substr($tok, 0,16), substr($tok,16)];
+        for($i=0; $i<2; $i++) {
+            $hl[$i] = decbin(hexdec($hl[$i]));
+        }
+        $merged = $hl[0].$hl[1];
+        $strs = [];
+        for($i=0; $i<strlen($merged)/2; $i++) {
+            $strs[0] = $merged[$i*2];
+            $strs[1] = $merged[$i*2+1];
+        }
+        return [bindec($strs[0]), bindec($strs[1])];
+    }
+    /*
     static private function intToToken($id) {
         $str_low = decbin($id);
-        $str_high = dechex($id);
         $l = strlen($str_low);
         if ( $l < 64) $str_low = str_repeat('0',64-$l).$str_low;
-        $str_low = substr($str_low, 4+2*self::S2CELL_MAX_SEARCH_LEVEL, 4+2*self::S2CELL_LEVEL_LOW);
+        $str_high = dechex($id);
+        $str_low = substr($str_low, 4+2*self::S2CELL_MAX_SEARCH_LEVEL,
+            2*(self::S2CELL_LEVEL-self::S2CELL_MAX_SEARCH_LEVEL));
         $l = strlen($str_high);
         if ( $l < 16) $str_high = str_repeat('0',16-$l).$str_high;
         $str_high = substr($str_high, 0, 1+(self::S2CELL_MAX_SEARCH_LEVEL)/2);
         return $str_high.$str_low;
     }
     static private function tokenToInt($tok) {
-        $str_low = substr($tok, 1+(self::S2CELL_MAX_SEARCH_LEVEL)/2) . str_repeat('0', 60-2*self::S2CELL_LEVEL_LOW);
+        $str_low = substr($tok, 1+(self::S2CELL_MAX_SEARCH_LEVEL)/2) . str_repeat('0', 60-2*self::S2CELL_LEVEL);
         $str_high = substr($tok, 0, 1+(self::S2CELL_MAX_SEARCH_LEVEL)/2);
         $bin_high = "";
         for($i=0; $i<strlen($str_high); $i++) {
@@ -236,4 +273,5 @@ class CacheMap{
         }
         return bindec($bin_high . $str_low);
     }
+     */
 }
