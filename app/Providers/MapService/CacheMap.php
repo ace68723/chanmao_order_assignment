@@ -36,7 +36,7 @@ class CacheMap{
         $ids = self::tokenToIds($pairId);
         $ret = [];
         foreach($ids as $cellId) {
-            $latlng = S2\S2CellId($cellId)->toLatLng();
+            $latlng = (new S2\S2CellId($cellId))->toLatLng();
             $ret[] = $latlng->toStringDegrees();
         }
         return $ret;
@@ -227,7 +227,7 @@ class CacheMap{
     static private function idsToToken($ids) {
         $strs = [];
         for($i=0; $i<2; $i++) {
-            $strs[$i] = decbin($id);
+            $strs[$i] = decbin($ids[$i]);
             $l = strlen($strs[$i]);
             if ($l < 64) $strs[$i] = str_repeat('0',64-$l).$strs[$i];
         }
@@ -235,13 +235,16 @@ class CacheMap{
         for($i=0; $i<64; $i++) $merged .= $strs[0][$i].$strs[1][$i];
         $h = bindec(substr($merged, 0, 64));
         $l = bindec(substr($merged, 64, 64));
-        return dechex($h).substr(dechex($l), 0, 30-self::S2CELL_LEVEL);
+        $strh = dechex($h); if (strlen($strh)<16) $strh = str_repeat('0',16-strlen($strh)).$strh;
+        $strl = dechex($l); if (strlen($strl)<16) $strl = str_repeat('0',16-strlen($strl)).$strl;
+        return $strh.substr($strl, 0, self::S2CELL_LEVEL-14);
     }
     static private function tokenToIds($tok) {
         $tok = $tok.str_repeat('0',32-strlen($tok));
         $hl = [substr($tok, 0,16), substr($tok,16)];
         for($i=0; $i<2; $i++) {
             $hl[$i] = decbin(hexdec($hl[$i]));
+            if (strlen($hl[$i])<64) $hl[$i]=str_repeat('0',64-strlen($hl[$i])).$hl[$i];
         }
         $merged = $hl[0].$hl[1];
         $strs = [];
