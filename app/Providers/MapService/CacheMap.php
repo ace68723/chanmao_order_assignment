@@ -12,6 +12,7 @@ class CacheMap{
     const DEG_PRECISION = 5;
     const REDIS_BATCH_SIZE = 50; //TODO change to a larger one, this is for test
     const S2CELL_LEVEL = 19;//lvl 19 cell is about 20m*20m
+    const S2CELL_MAX_SEARCH_LEVEL = 10;//must be even; lvl 10 cell is about 10km*10km
     const ACCU_MIN_INTER = 3600;
     const ACCU_MAX_INTER = 3600*24*7;
 
@@ -20,7 +21,9 @@ class CacheMap{
             ->parent(self::S2CELL_LEVEL)->id();
         $endCellId = S2\S2CellId::fromLatLng(S2\S2LatLng::fromDegrees($end_lat, $end_lng))
             ->parent(self::S2CELL_LEVEL)->id();
-        return dechex($startCellId)."-".dechex($endCellId);
+        $x = self::intToToken($startCellId);
+        $y = self::intToToken($endCellId);
+        return $x."-".$y;
     }
     static public function ToPairId($start_loc, $end_loc) {
         $paras = [];
@@ -76,7 +79,8 @@ class CacheMap{
     static public function test() {
         $start_loc = "43,-79";
         $end_loc = "43,-80";
-        return self::ToPairId($start_loc,$end_loc);
+        $pairId = self::ToPairId($start_loc,$end_loc);
+        return [$pairId];
     }
     static private function accumlate(&$tuple, $value, $curTime) {
         $ratio = 0.9;
@@ -212,4 +216,24 @@ class CacheMap{
         return ($n>0)? $ratio/$n : null;
     }
      */
+    static private function intToToken($id) {
+        $str_low = decbin($id);
+        $str_high = dechex($id);
+        $l = strlen($str_low);
+        if ( $l < 64) $str_low = str_repeat('0',64-$l).$str_low;
+        $str_low = substr($str_low, 4+2*self::S2CELL_MAX_SEARCH_LEVEL, 4+2*self::S2CELL_LEVEL_LOW);
+        $l = strlen($str_high);
+        if ( $l < 16) $str_high = str_repeat('0',16-$l).$str_high;
+        $str_high = substr($str_high, 0, 1+(self::S2CELL_MAX_SEARCH_LEVEL)/2);
+        return $str_high.$str_low;
+    }
+    static private function tokenToInt($tok) {
+        $str_low = substr($tok, 1+(self::S2CELL_MAX_SEARCH_LEVEL)/2) . str_repeat('0', 60-2*self::S2CELL_LEVEL_LOW);
+        $str_high = substr($tok, 0, 1+(self::S2CELL_MAX_SEARCH_LEVEL)/2);
+        $bin_high = "";
+        for($i=0; $i<strlen($str_high); $i++) {
+            $bin_high = $bin_high . decbin(hexdec($str_high[$i]));
+        }
+        return bindec($bin_high . $str_low);
+    }
 }
