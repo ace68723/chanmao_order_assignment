@@ -233,48 +233,37 @@ class CacheMap{
         }
         $merged = "";
         for($i=0; $i<64; $i++) $merged .= $strs[0][$i].$strs[1][$i];
-        $h = bindec(substr($merged, 0, 64));
-        $l = bindec(substr($merged, 64, 64));
-        $strh = dechex($h); if (strlen($strh)<16) $strh = str_repeat('0',16-strlen($strh)).$strh;
-        $strl = dechex($l); if (strlen($strl)<16) $strl = str_repeat('0',16-strlen($strl)).$strl;
-        return $strh.substr($strl, 0, self::S2CELL_LEVEL-14);
+        $mergedhex = "";
+        for($i=0; $i<4; $i++) {
+            $h = bindec(substr($merged, 0, 32));
+            $strh = dechex($h); if (strlen($strh)<8) $strh = str_repeat('0',8-strlen($strh)).$strh;
+            $mergedhex .= $strh;
+        }
+        return substr($mergedhex, 0, 16+self::S2CELL_LEVEL-14);
     }
     static private function tokenToIds($tok) {
         $tok = $tok.str_repeat('0',32-strlen($tok));
-        $hl = [substr($tok, 0,16), substr($tok,16)];
-        for($i=0; $i<2; $i++) {
-            $hl[$i] = decbin(hexdec($hl[$i]));
-            if (strlen($hl[$i])<64) $hl[$i]=str_repeat('0',64-strlen($hl[$i])).$hl[$i];
+        $merged = "";
+        for($i=0; $i<4; $i++) {
+            $hl = substr($tok,8*$i,8);
+            $hl = decbin(hexdec($hl));
+            if (strlen($hl)<32) $hl=str_repeat('0',32-strlen($hl)).$hl;
+            $merged .= $hl;
         }
-        $merged = $hl[0].$hl[1];
-        $strs = [];
+        $strs = ['',''];
         for($i=0; $i<strlen($merged)/2; $i++) {
-            $strs[0] = $merged[$i*2];
-            $strs[1] = $merged[$i*2+1];
+            $strs[0] .= $merged[$i*2];
+            $strs[1] .= $merged[$i*2+1];
         }
-        return [bindec($strs[0]), bindec($strs[1])];
-    }
-    /*
-    static private function intToToken($id) {
-        $str_low = decbin($id);
-        $l = strlen($str_low);
-        if ( $l < 64) $str_low = str_repeat('0',64-$l).$str_low;
-        $str_high = dechex($id);
-        $str_low = substr($str_low, 4+2*self::S2CELL_MAX_SEARCH_LEVEL,
-            2*(self::S2CELL_LEVEL-self::S2CELL_MAX_SEARCH_LEVEL));
-        $l = strlen($str_high);
-        if ( $l < 16) $str_high = str_repeat('0',16-$l).$str_high;
-        $str_high = substr($str_high, 0, 1+(self::S2CELL_MAX_SEARCH_LEVEL)/2);
-        return $str_high.$str_low;
-    }
-    static private function tokenToInt($tok) {
-        $str_low = substr($tok, 1+(self::S2CELL_MAX_SEARCH_LEVEL)/2) . str_repeat('0', 60-2*self::S2CELL_LEVEL);
-        $str_high = substr($tok, 0, 1+(self::S2CELL_MAX_SEARCH_LEVEL)/2);
-        $bin_high = "";
-        for($i=0; $i<strlen($str_high); $i++) {
-            $bin_high = $bin_high . decbin(hexdec($str_high[$i]));
+        $ids = [];
+        for($i=0; $i<2; $i++) {
+            if ($strs[$i][0] == '0') {
+                $ids[$i] = bindec($strs[$i]);
+            }
+            else {
+                $ids[$i] = -1-bindec(substr($strs[$i],1));
+            }
         }
-        return bindec($bin_high . $str_low);
+        return $ids;
     }
-     */
 }
