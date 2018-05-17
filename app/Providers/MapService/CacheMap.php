@@ -9,10 +9,9 @@ use App\Exceptions\CmException;
 class CacheMap{
     const PREFIX = "cmoa:map:";
     const KEEP_ALIVE_SEC = 3600*24;
-    const DEG_PRECISION = 5;
+    const DEG_PRECISION_FORMAT= "%.5f,%.5f";
     const REDIS_BATCH_SIZE = 50; //TODO change to a larger one, this is for test
     const S2CELL_LEVEL = 19;//must >= 14; lvl 19 cell is about 20m*20m
-    const S2CELL_MAX_SEARCH_LEVEL = 10;//must be even; lvl 10 cell is about 10km*10km
     const ACCU_MIN_INTER = 3600;
     const ACCU_MAX_INTER = 3600*24*7;
 
@@ -37,7 +36,7 @@ class CacheMap{
         $ret = [];
         foreach($ids as $cellId) {
             $latlng = (new S2\S2CellId($cellId))->toLatLng();
-            $ret[] = $latlng->toStringDegrees();
+            $ret[] = sprintf(self::DEG_PRECISION_FORMAT, $latlng->latDegrees(),$latlng->latDegrees());
         }
         return $ret;
     }
@@ -84,11 +83,17 @@ class CacheMap{
         }
     }
     static public function test() {
-        $start_loc = "43,-79";
-        $end_loc = "43,-80";
-        $pairId = self::ExtLocToPairId($start_loc,$end_loc);
-        $recovered = self::PairIdToExtLoc($pairId);
-        return [$pairId, $recovered];
+        $ret = [];
+        $pairs = [];
+        $pairs[] = ["43,-79", "43,-80"];
+        $pairs[] = ["43.0001,-79", "43,-80.0001"];
+        $pairs[] = ["43.001,-79", "43,-80.001"];
+        $pairs[] = ["43.01,-79", "43,-80.01"];
+        foreach($pairs as $pair) {
+            $ret[] = self::ExtLocToPairId(...$pair);
+        }
+        $ret[] = self::PairIdToExtLoc($ret[0]);
+        return $ret;
     }
     static private function accumlate(&$tuple, $value, $curTime) {
         $ratio = 0.9;
@@ -96,6 +101,7 @@ class CacheMap{
         if ($curTime - $tuple[1] > self::ACCU_MAX_INTER) $ratio = 0.5;
         $tuple[0] *= $ratio;
         $tuple[0] += (1-$ratio)*$value;
+        $tuple[0] = (int)($tuple[0]);
         $tuple[1] = $curTime;
         return true;
     }
@@ -148,19 +154,18 @@ class CacheMap{
             }
         }
     }
-    static private function near_pattern($center, $level) {
-        return substr($center,0,strlen($center)-$level).str_repeat('?',$level);
-    }
     static public function query_near($start_loc, $end_loc) {
-        for($level = 1; $level <= 3; $level++) {
-            $x = self::near_pattern($start_loc, $level);
-            $y = self::near_pattern($end_loc, $level);
-            $keys = Redis::keys(self::PREFIX."pair:".$x.":".$y);
+        $key_prefix = self::PREFIX . "pair:";
+        $tPairId = self::ExtLocToPairId($start_loc, $end_loc);
+        for($level = 1; $level <= 8; $level++) {
+            $pat = substr($tPairId,0,strlen($tPairId)-$level).str_repeat('?',$level);
+            $keys = Redis::keys($key_prefix.$pat); // this is limited by the pattern
             if (!empty($keys)) {
                 $values = Redis::mget($keys);
                 $data = [];
                 foreach($values as $i=>$value) if (!empty($value)){
-                    $locs = array_slice($keys[$i]->explode(':'),-2);
+                    $pairId = substr($keys[$i], strrpos(explode(':'),$keys[$i]));
+                    $locs = self::PairIdToExtLoc($pairId);
                     $data[$locs[0]][$locs[1]] = json_decode($value, true);
                 }
                 if (!empty($data)) return $data;
@@ -234,22 +239,25 @@ class CacheMap{
         $merged = "";
         for($i=0; $i<64; $i++) $merged .= $strs[0][$i].$strs[1][$i];
         $mergedhex = "";
-        for($i=0; $i<4; $i++) {
+        for($i=0; $i<2; $i++) {
             $h = bindec(substr($merged, 32*$i, 32));
             $strh = dechex($h); if (strlen($strh)<8) $strh = str_repeat('0',8-strlen($strh)).$strh;
             $mergedhex .= $strh;
         }
-        return substr($mergedhex, 0, 16+self::S2CELL_LEVEL-14);
+        $ret = $mergedhex. substr($merged, 64, 4*(self::S2CELL_LEVEL-14));
+        return $ret;
     }
     static private function tokenToIds($tok) {
-        $tok = $tok.str_repeat('0',32-strlen($tok));
         $merged = "";
-        for($i=0; $i<4; $i++) {
+        for($i=0; $i<2; $i++) {
             $hl = substr($tok,8*$i,8);
             $hl = decbin(hexdec($hl));
             if (strlen($hl)<32) $hl=str_repeat('0',32-strlen($hl)).$hl;
             $merged .= $hl;
         }
+        $tail = substr($tok, 16);
+        if (strlen($tail)<64) $tail .= str_repeat('0',64-strlen($tail));
+        $merged .= $tail; 
         $strs = ['',''];
         for($i=0; $i<strlen($merged)/2; $i++) {
             $strs[0] .= $merged[$i*2];
