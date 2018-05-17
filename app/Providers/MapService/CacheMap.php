@@ -235,7 +235,7 @@ class CacheMap{
         for($i=0; $i<64; $i++) $merged .= $strs[0][$i].$strs[1][$i];
         $mergedhex = "";
         for($i=0; $i<4; $i++) {
-            $h = bindec(substr($merged, 0, 32));
+            $h = bindec(substr($merged, 32*$i, 32));
             $strh = dechex($h); if (strlen($strh)<8) $strh = str_repeat('0',8-strlen($strh)).$strh;
             $mergedhex .= $strh;
         }
@@ -261,7 +261,7 @@ class CacheMap{
                 $ids[$i] = bindec($strs[$i]);
             }
             else {
-                $ids[$i] = -1-bindec(substr($strs[$i],1));
+                $ids[$i] = bindec(substr($strs[$i],1))+PHP_INT_MIN;
             }
         }
         return $ids;
