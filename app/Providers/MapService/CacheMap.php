@@ -11,7 +11,7 @@ class CacheMap{
     const KEEP_ALIVE_SEC = 3600*24;
     const DEG_PRECISION_FORMAT= "%.5f,%.5f";
     const REDIS_BATCH_SIZE = 50; //TODO change to a larger one, this is for test
-    const S2CELL_LEVEL = 19;//must >= 14; lvl 19 cell is about 20m*20m
+    const S2CELL_LEVEL = 18;//must >= 14; lvl 18 cell is about 35m*35m
     const ACCU_MIN_INTER = 3600;
     const ACCU_MAX_INTER = 3600*24*7;
 
@@ -36,7 +36,7 @@ class CacheMap{
         $ret = [];
         foreach($ids as $cellId) {
             $latlng = (new S2\S2CellId($cellId))->toLatLng();
-            $ret[] = sprintf(self::DEG_PRECISION_FORMAT, $latlng->latDegrees(),$latlng->latDegrees());
+            $ret[] = sprintf(self::DEG_PRECISION_FORMAT, $latlng->latDegrees(),$latlng->lngDegrees());
         }
         return $ret;
     }
@@ -90,7 +90,13 @@ class CacheMap{
         $pairs[] = ["43.001,-79", "43,-80.001"];
         $pairs[] = ["43.01,-79", "43,-80.01"];
         foreach($pairs as $pair) {
-            $ret[] = self::ExtLocToPairId(...$pair);
+            $pairId = self::ExtLocToPairId(...$pair);
+            $ids = self::tokenToIds($pairId);
+            $startCell = new S2\S2CellId($ids[0]);
+            $neighbors = [];
+            $startCell->getVertexNeighbors(14, $neighbors);
+            foreach($neighbors as &$cellId) { $cellId = dechex($cellId->id());}
+            $ret[] = [$pairId, $neighbors];
         }
         $ret[] = self::PairIdToExtLoc($ret[0]);
         return $ret;
@@ -158,7 +164,7 @@ class CacheMap{
         $key_prefix = self::PREFIX . "pair:";
         $tPairId = self::ExtLocToPairId($start_loc, $end_loc);
         for($level = 1; $level <= 8; $level++) {
-            $pat = substr($tPairId,0,strlen($tPairId)-$level).str_repeat('?',$level);
+            $pat = substr($tPairId,0,strlen($tPairId)-$level).'*';
             $keys = Redis::keys($key_prefix.$pat); // this is limited by the pattern
             if (!empty($keys)) {
                 $values = Redis::mget($keys);
@@ -239,24 +245,26 @@ class CacheMap{
         $merged = "";
         for($i=0; $i<64; $i++) $merged .= $strs[0][$i].$strs[1][$i];
         $mergedhex = "";
-        for($i=0; $i<2; $i++) {
+        for($i=0; $i<4; $i++) {
             $h = bindec(substr($merged, 32*$i, 32));
             $strh = dechex($h); if (strlen($strh)<8) $strh = str_repeat('0',8-strlen($strh)).$strh;
             $mergedhex .= $strh;
         }
-        $ret = $mergedhex. substr($merged, 64, 4*(self::S2CELL_LEVEL-14));
+        //$ret = $mergedhex. substr($merged, 64, 4*(self::S2CELL_LEVEL-14));
+        $ret = substr($mergedhex, 0, 16+self::S2CELL_LEVEL-14);
         return $ret;
     }
     static private function tokenToIds($tok) {
+        $tok .= str_repeat('0', 32-strlen($tok));
         $merged = "";
-        for($i=0; $i<2; $i++) {
+        for($i=0; $i<4; $i++) {
             $hl = substr($tok,8*$i,8);
             $hl = decbin(hexdec($hl));
             if (strlen($hl)<32) $hl=str_repeat('0',32-strlen($hl)).$hl;
             $merged .= $hl;
         }
-        $tail = substr($tok, 16);
-        if (strlen($tail)<64) $tail .= str_repeat('0',64-strlen($tail));
+        //$tail = substr($tok, 16);
+        //if (strlen($tail)<64) $tail .= str_repeat('0',64-strlen($tail));
         $merged .= $tail; 
         $strs = ['',''];
         for($i=0; $i<strlen($merged)/2; $i++) {
