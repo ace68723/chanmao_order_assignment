@@ -11,31 +11,23 @@ class CacheMap{
     const KEEP_ALIVE_SEC = 3600*24;
     const DEG_PRECISION_FORMAT= "%.5f,%.5f";
     const REDIS_BATCH_SIZE = 50; //TODO change to a larger one, this is for test
-    const S2CELL_LEVEL = 18;//must >= 14; lvl 18 cell is about 35m*35m
+    const S2CELL_LEVEL = 20;//must >= 14 <30; lvl 20 cell is about 10m*10m
     const ACCU_MIN_INTER = 3600;
     const ACCU_MAX_INTER = 3600*24*7;
 
-    static public function LatLngToPairId($start_lat, $start_lng, $end_lat, $end_lng) {
-        $startCellId = S2\S2CellId::fromLatLng(S2\S2LatLng::fromDegrees($start_lat, $start_lng))
-            ->parent(self::S2CELL_LEVEL)->id();
-        $endCellId = S2\S2CellId::fromLatLng(S2\S2LatLng::fromDegrees($end_lat, $end_lng))
-            ->parent(self::S2CELL_LEVEL)->id();
-        return self::idsToToken([$startCellId, $endCellId]);
-    }
-    static public function ExtLocToPairId($start_loc, $end_loc) {
-        $paras = [];
+    static public function ExtLocToCells($start_loc, $end_loc) {
+        $cells = [];
         foreach([$start_loc,$end_loc] as $loc_str) {
             $arr = explode(',',$loc_str);
-            $paras[] = floatval($arr[0]);
-            $paras[] = floatval($arr[1]);
+            $cells[] = S2\S2CellId::fromLatLng(S2\S2LatLng::fromDegrees(floatval($arr[0]), $floatval($arr[1])))
+                ->parent(self::S2CELL_LEVEL);
         }
-        return self::LatLngToPairId(...$paras);
+        return $cells;
     }
-    static public function PairIdToExtLoc($pairId) {
-        $ids = self::tokenToIds($pairId);
+    static public function CellsToExtLoc($cells) {
         $ret = [];
-        foreach($ids as $cellId) {
-            $latlng = (new S2\S2CellId($cellId))->toLatLng();
+        foreach($cells as $cell) {
+            $latlng = $cell->toLatLng();
             $ret[] = sprintf(self::DEG_PRECISION_FORMAT, $latlng->latDegrees(),$latlng->lngDegrees());
         }
         return $ret;
@@ -48,7 +40,8 @@ class CacheMap{
         foreach($origin_loc_arr as $start_loc) {
             foreach($end_loc_arr as $end_loc) {
                 if ($start_loc == $end_loc) continue;
-                $pairkeys[] = $key_prefix.self::ToPaidId($start_loc,$end_loc);
+                $cells = self::ExtLocToCells($start_loc, $end_loc);
+                $pairkeys[] = $key_prefix.self::cellsToToken($cells);
                 $idx[] = [$start_loc, $end_loc];
                 if (count($pairkeys) >= self::REDIS_BATCH_SIZE) {
                     self::mget2d($pairkeys,$idx,$dist_mat,$missing);
@@ -68,7 +61,8 @@ class CacheMap{
         foreach ($dudi_mat as $start_loc=>$rows) {
             foreach($rows as $end_loc=>$elem) {
                 if ($start_loc == $end_loc) continue;
-                $pairkeys[] = $key_prefix.self::ToPairId($start_loc,$end_loc);
+                $cells = self::ExtLocToCells($start_loc, $end_loc);
+                $pairkeys[] = $key_prefix.self::cellsToToken($cells);
                 $idx[] = [$start_loc, $end_loc];
                 $dudis[] = $elem;
                 if (count($pairkeys) >= self::REDIS_BATCH_SIZE) {
@@ -90,15 +84,11 @@ class CacheMap{
         $pairs[] = ["43.001,-79", "43,-80.001"];
         $pairs[] = ["43.01,-79", "43,-80.01"];
         foreach($pairs as $pair) {
-            $pairId = self::ExtLocToPairId(...$pair);
-            $ids = self::tokenToIds($pairId);
-            $startCell = new S2\S2CellId($ids[0]);
-            $neighbors = [];
-            $startCell->getVertexNeighbors(14, $neighbors);
-            foreach($neighbors as &$cellId) { $cellId = dechex($cellId->id());}
-            $ret[] = [$pairId, $neighbors];
+            $cells = self::ExtLocToCells(...$pair);
+            $pats = self::near_patterns($cells, 14);
+            $ret[] = [self::cellsToToken($cells), $pats];
         }
-        $ret[] = self::PairIdToExtLoc($ret[0]);
+        //$ret[] = self::PairIdToExtLoc($ret[0]);
         return $ret;
     }
     static private function accumlate(&$tuple, $value, $curTime) {
@@ -160,18 +150,33 @@ class CacheMap{
             }
         }
     }
+    static public function near_patterns($cells, $level) {
+        //assert($level < self::S2CELL_LEVEL);
+        $pats = [];
+        $neighbors = [[],[]];
+        for($i=0; $i<2; $i++) {
+            $cells[$i]->getVertexNeighbors(14, $neighbors[$i]);
+        }
+        foreach($neighbors[0] as $start) {
+            foreach($neighbors[1] as $end) {
+                $pats[] = self::cellsToToken([$start,$end], $level);
+            }
+        }
+        return $pats;
+    }
     static public function query_near($start_loc, $end_loc) {
         $key_prefix = self::PREFIX . "pair:";
-        $tPairId = self::ExtLocToPairId($start_loc, $end_loc);
-        for($level = 1; $level <= 8; $level++) {
-            $pat = substr($tPairId,0,strlen($tPairId)-$level).'*';
-            $keys = Redis::keys($key_prefix.$pat); // this is limited by the pattern
+        $cells = self::ExtLocToCells($start_loc, $end_loc);
+        $pats = self::near_patterns($cells, 14);
+        $data = [];
+        foreach($pats as $pat) {
+            $keys = Redis::keys($key_prefix.$pat.'*'); // this is limited by the pattern
             if (!empty($keys)) {
                 $values = Redis::mget($keys);
-                $data = [];
                 foreach($values as $i=>$value) if (!empty($value)){
-                    $pairId = substr($keys[$i], strrpos(explode(':'),$keys[$i]));
-                    $locs = self::PairIdToExtLoc($pairId);
+                    $token = substr($keys[$i], strrpos(explode(':'),$keys[$i]));
+                    $cells = self::tokenToCells($token);
+                    $locs = self::CellsToExtLoc($cells);
                     $data[$locs[0]][$locs[1]] = json_decode($value, true);
                 }
                 if (!empty($data)) return $data;
@@ -235,12 +240,13 @@ class CacheMap{
         return ($n>0)? $ratio/$n : null;
     }
      */
-    static private function idsToToken($ids) {
+    static private function cellsToToken($cells, $level=self::S2CELL_LEVEL) {
         $strs = [];
         for($i=0; $i<2; $i++) {
-            $strs[$i] = decbin($ids[$i]);
+            $strs[$i] = decbin($cells[$i]->id());
             $l = strlen($strs[$i]);
             if ($l < 64) $strs[$i] = str_repeat('0',64-$l).$strs[$i];
+            $strs[$i] = '0'.substr($strs[$i],0,63);
         }
         $merged = "";
         for($i=0; $i<64; $i++) $merged .= $strs[0][$i].$strs[1][$i];
@@ -250,11 +256,12 @@ class CacheMap{
             $strh = dechex($h); if (strlen($strh)<8) $strh = str_repeat('0',8-strlen($strh)).$strh;
             $mergedhex .= $strh;
         }
-        //$ret = $mergedhex. substr($merged, 64, 4*(self::S2CELL_LEVEL-14));
-        $ret = substr($mergedhex, 0, 16+self::S2CELL_LEVEL-14);
+        //assert($mergedhex[16+$level-14] == 'c');
+        $ret = substr($mergedhex, 0, 16+$level-14);
         return $ret;
     }
-    static private function tokenToIds($tok) {
+    static private function tokenToCells($tok) {
+        $tok .= 'c';
         $tok .= str_repeat('0', 32-strlen($tok));
         $merged = "";
         for($i=0; $i<4; $i++) {
@@ -263,23 +270,22 @@ class CacheMap{
             if (strlen($hl)<32) $hl=str_repeat('0',32-strlen($hl)).$hl;
             $merged .= $hl;
         }
-        //$tail = substr($tok, 16);
-        //if (strlen($tail)<64) $tail .= str_repeat('0',64-strlen($tail));
-        $merged .= $tail; 
         $strs = ['',''];
         for($i=0; $i<strlen($merged)/2; $i++) {
             $strs[0] .= $merged[$i*2];
             $strs[1] .= $merged[$i*2+1];
         }
-        $ids = [];
+        $cells = [];
         for($i=0; $i<2; $i++) {
+            $strs[$i] = substr($strs[$i],1).'0';
             if ($strs[$i][0] == '0') {
-                $ids[$i] = bindec($strs[$i]);
+                $id = bindec($strs[$i]);
             }
             else {
-                $ids[$i] = bindec(substr($strs[$i],1))+PHP_INT_MIN;
+                $id = bindec(substr($strs[$i],1))+PHP_INT_MIN;
             }
+            $cells[] = new S2\S2CellId($id);
         }
-        return $ids;
+        return $cells;
     }
 }
