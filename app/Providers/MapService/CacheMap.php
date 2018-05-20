@@ -19,7 +19,7 @@ class CacheMap{
         $cells = [];
         foreach([$start_loc,$end_loc] as $loc_str) {
             $arr = explode(',',$loc_str);
-            $cells[] = S2\S2CellId::fromLatLng(S2\S2LatLng::fromDegrees(floatval($arr[0]), $floatval($arr[1])))
+            $cells[] = S2\S2CellId::fromLatLng(S2\S2LatLng::fromDegrees(floatval($arr[0]), floatval($arr[1])))
                 ->parent(self::S2CELL_LEVEL);
         }
         return $cells;
@@ -248,6 +248,7 @@ class CacheMap{
             if ($l < 64) $strs[$i] = str_repeat('0',64-$l).$strs[$i];
             $strs[$i] = '0'.substr($strs[$i],0,63);
         }
+        Log::debug(__FUNCTION__.":".dechex($cells[0]->id()).":".dechex($cells[1]->id()).":".$level);
         $merged = "";
         for($i=0; $i<64; $i++) $merged .= $strs[0][$i].$strs[1][$i];
         $mergedhex = "";
@@ -258,9 +259,11 @@ class CacheMap{
         }
         //assert($mergedhex[16+$level-14] == 'c');
         $ret = substr($mergedhex, 0, 16+$level-14);
+        Log::debug(__FUNCTION__.":ret:".$ret);
         return $ret;
     }
     static private function tokenToCells($tok) {
+        Log::debug(__FUNCTION__.":tok:".$tok);
         $tok .= 'c';
         $tok .= str_repeat('0', 32-strlen($tok));
         $merged = "";
@@ -286,6 +289,7 @@ class CacheMap{
             }
             $cells[] = new S2\S2CellId($id);
         }
+        Log::debug(__FUNCTION__.":".dechex($cells[0]->id()).":".dechex($cells[1]->id()).":".$level);
         return $cells;
     }
 }
