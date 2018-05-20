@@ -66,13 +66,13 @@ class CacheMap{
                 $idx[] = [$start_loc, $end_loc];
                 $dudis[] = $elem;
                 if (count($pairkeys) >= self::REDIS_BATCH_SIZE) {
-                    $self::update2d($keys, $idx, $dudis, $caseid);
+                    self::update2d($pairkeys, $idx, $dudis, $caseid);
                     $pairkeys = []; $idx = []; $dudis = [];
                 }
             }
         }
         if (count($pairkeys)) {
-            $self::update2d($keys, $idx, $dudis, $caseid);
+            self::update2d($pairkeys, $idx, $dudis, $caseid);
             $pairkeys = []; $idx = []; $dudis = [];
         }
     }
@@ -82,14 +82,14 @@ class CacheMap{
         $pairs[] = ["43,-79", "43,-80"];
         foreach($pairs as $pair) {
             self::update_mat([$pair[0]=>[$pair[1]=>[10,20]]]);
-            $ret[] = self::get_mat([$pair[0],$pair[1]]);
+            $ret[] = self::get_mat([$pair[0]],[$pair[1]]);
         }
         //$pairs[] = ["43.0001,-79", "43,-80.0001"];
         //$pairs[] = ["43.001,-79", "43,-80.001"];
         $pairs[] = ["43.01,-79", "43,-80.01"];
         foreach($pairs as $pair) {
             self::update_mat([$pair[0]=>[$pair[1]=>[40,50]]]);
-            $ret[] = self::get_mat([$pair[0],$pair[1]]);
+            $ret[] = self::get_mat([$pair[0]],[$pair[1]]);
             $ret[] = self::query_near($pair[0],$pair[1]);
         }
         foreach($pairs as $pair) {
@@ -113,7 +113,7 @@ class CacheMap{
         return true;
     }
     static private function update2d($keys, $idx, $dudis, $caseId) {
-        self::mget2d($keys, $idx, $oldata, $missing);
+        self::mget2d($keys, $idx, $olddata, $missing);
         $newdata = [];
         $curTime = time();
         foreach ($dudis as $i=>$elem) {
@@ -122,7 +122,7 @@ class CacheMap{
             if (isset($olddata[$start_loc][$end_loc])) {
                 $newitem = $olddata[$start_loc][$end_loc];
                 $isNew = self::accumlate($newitem['_s'],$elem[0],$curTime);
-                $shouldUpdate = $isnew;
+                $shouldUpdate = $isNew;
                 if ($elem[1] != $newitem['_m']) {
                     $newitem['_m'] = $elem[1];
                     $shouldUpdate = true;
@@ -147,7 +147,7 @@ class CacheMap{
             $newdata[] = json_encode($newitem);
         }
         if (!empty($newdata)) {
-            Redis::mset($newdata);
+            Redis::mset(...$newdata);
         }
     }
     static private function mget2d($keys, $idx, &$data, &$missing) {
@@ -185,7 +185,7 @@ class CacheMap{
             if (!empty($keys)) {
                 $values = Redis::mget($keys);
                 foreach($values as $i=>$value) if (!empty($value)){
-                    $token = substr($keys[$i], strrpos(explode(':'),$keys[$i]));
+                    $token = substr($keys[$i], strrpos($keys[$i],':'));
                     $cells = self::tokenToCells($token);
                     $locs = self::CellsToExtLoc($cells);
                     $data[$locs[0]][$locs[1]] = json_decode($value, true);
