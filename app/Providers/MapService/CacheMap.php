@@ -80,15 +80,26 @@ class CacheMap{
         $ret = [];
         $pairs = [];
         $pairs[] = ["43,-79", "43,-80"];
-        $pairs[] = ["43.0001,-79", "43,-80.0001"];
-        $pairs[] = ["43.001,-79", "43,-80.001"];
+        foreach($pairs as $pair) {
+            self::update_mat([$pair[0]=>[$pair[1]=>[10,20]]]);
+            $ret[] = self::get_mat([$pair[0],$pair[1]]);
+        }
+        //$pairs[] = ["43.0001,-79", "43,-80.0001"];
+        //$pairs[] = ["43.001,-79", "43,-80.001"];
         $pairs[] = ["43.01,-79", "43,-80.01"];
         foreach($pairs as $pair) {
-            $cells = self::ExtLocToCells(...$pair);
-            $pats = self::near_patterns($cells, 14);
-            $ret[] = [self::cellsToToken($cells), $pats];
+            self::update_mat([$pair[0]=>[$pair[1]=>[40,50]]]);
+            $ret[] = self::get_mat([$pair[0],$pair[1]]);
+            $ret[] = self::query_near($pair[0],$pair[1]);
         }
-        //$ret[] = self::PairIdToExtLoc($ret[0]);
+        foreach($pairs as $pair) {
+            $cells = self::ExtLocToCells(...$pair);
+            $tok = self::cellsToToken($cells);
+            $rcells = self::tokenToCells($tok);
+            $rLocs = self::CellsToExtLoc($rcells);
+            $pats = self::near_patterns($cells, 13);
+            $ret[] = [$tok, $rLocs, $pats];
+        }
         return $ret;
     }
     static private function accumlate(&$tuple, $value, $curTime) {
@@ -155,7 +166,7 @@ class CacheMap{
         $pats = [];
         $neighbors = [[],[]];
         for($i=0; $i<2; $i++) {
-            $cells[$i]->getVertexNeighbors(14, $neighbors[$i]);
+            $cells[$i]->getVertexNeighbors($level, $neighbors[$i]);
         }
         foreach($neighbors[0] as $start) {
             foreach($neighbors[1] as $end) {
@@ -167,7 +178,7 @@ class CacheMap{
     static public function query_near($start_loc, $end_loc) {
         $key_prefix = self::PREFIX . "pair:";
         $cells = self::ExtLocToCells($start_loc, $end_loc);
-        $pats = self::near_patterns($cells, 14);
+        $pats = self::near_patterns($cells, 13);
         $data = [];
         foreach($pats as $pat) {
             $keys = Redis::keys($key_prefix.$pat.'*'); // this is limited by the pattern
@@ -248,7 +259,7 @@ class CacheMap{
             if ($l < 64) $strs[$i] = str_repeat('0',64-$l).$strs[$i];
             $strs[$i] = '0'.substr($strs[$i],0,63);
         }
-        Log::debug(__FUNCTION__.":".dechex($cells[0]->id()).":".dechex($cells[1]->id()).":".$level);
+        //Log::debug(__FUNCTION__.":".dechex($cells[0]->id()).":".dechex($cells[1]->id()).":".$level);
         $merged = "";
         for($i=0; $i<64; $i++) $merged .= $strs[0][$i].$strs[1][$i];
         $mergedhex = "";
@@ -259,11 +270,11 @@ class CacheMap{
         }
         //assert($mergedhex[16+$level-14] == 'c');
         $ret = substr($mergedhex, 0, 16+$level-14);
-        Log::debug(__FUNCTION__.":ret:".$ret);
+        //Log::debug(__FUNCTION__.":ret:".$ret);
         return $ret;
     }
     static private function tokenToCells($tok) {
-        Log::debug(__FUNCTION__.":tok:".$tok);
+        //Log::debug(__FUNCTION__.":tok:".$tok);
         $tok .= 'c';
         $tok .= str_repeat('0', 32-strlen($tok));
         $merged = "";
@@ -289,7 +300,7 @@ class CacheMap{
             }
             $cells[] = new S2\S2CellId($id);
         }
-        Log::debug(__FUNCTION__.":".dechex($cells[0]->id()).":".dechex($cells[1]->id()).":".$level);
+        //Log::debug(__FUNCTION__.":".dechex($cells[0]->id()).":".dechex($cells[1]->id()).":".$level);
         return $cells;
     }
 }
