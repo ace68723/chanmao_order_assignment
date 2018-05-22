@@ -252,6 +252,24 @@ class ScheduleService{
         $uniCache->set('cmoa_input_signStr', $signStr);
         return md5($signStr);
     }
+    public function learn_map($areaId) {
+        $input = $this->reload($areaId);
+        $task_dict = $input['task_dict'];
+        $driver_dict = $input['driver_dict'];
+        if (count($task_dict)==0 || count($driver_dict)==0) {
+            return;
+        }
+        $uniCache = app()->make('cmoa_model_cache_service')->get('UniCache');
+        $new_input_sign = $this->calc_input_sign($input);
+        if ($uniCache->get('signLearnMapInput') != $new_input_sign) {
+            $map_sp = app()->make('cmoa_map_service');
+            $curTasks = $input['curTasks'];
+            $loc_dict = $input['basic_loc_dict']; //will be enriched
+            $dist_mat = $map_sp->learn_map($loc_dict);
+            $uniCache->set('signLearnMapInput', $new_input_sign);
+        }
+        return ;
+    }
     public function run($areaId, $force_redo = false) {
         $input = $this->reload($areaId);
         $task_dict = $input['task_dict'];
@@ -265,7 +283,7 @@ class ScheduleService{
         if ($force_redo || $uniCache->get('signScheInput') != $new_input_sign) {
             $map_sp = app()->make('cmoa_map_service');
             $curTasks = $input['curTasks'];
-            $loc_dict = $input['basic_loc_dict']; //enriched in the get_dist_mat call
+            $loc_dict = $input['basic_loc_dict']; //will be enriched in the get_dist_mat call
             $dist_mat = $map_sp->get_dist_mat($loc_dict);
             $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $curTasks);
             $scheCache->set_schedules($schedules, time());

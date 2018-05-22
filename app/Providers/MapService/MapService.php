@@ -10,7 +10,7 @@ class MapService{
     const CENTER = [43.78,-79.28];
     //['LAT'=>1,'LNG'=>1.385037];//1.0/cos($this->consts['CENTER']['LAT']/180.0*3.14159)];
     const DEG_TO_KM_RATIO = [111.1949,154.0091];//6371*1.0/180*3.14159
-    const DEG_PRECISION = 5;
+    const DEG_PRECISION = 4;
     const GRID_LEN_KM = 0.1;
     const HEURISTIC_RATIO = 11.875;
     public function __construct()
@@ -39,13 +39,7 @@ class MapService{
     public function test() {
         return CacheMap::test();
     }
-
-    /*
-     * [in] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str}]
-     * [out] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str, 'gridId':str, 'idx':int, 'adjustLatLng':string}]
-     * return $dist_mat: 2-D double
-     */
-    public function get_dist_mat(&$loc_dict) {
+    private function aggregate_locs(&$loc_dict) {
         $grid_dict = [];
         foreach($loc_dict as $k=>$loc) {
             $grid_idx_arr = self::toGridIdx([$loc['lat'], $loc['lng']]);
@@ -75,6 +69,39 @@ class MapService{
             $loc_dict[$k]['idx'] = $grid_dict[$v['gridId']]['idx']?? -1;
         }
         Log::debug("len(origin):".count($origin_loc_arr)." len(dest):".count($dest_loc_arr));
+        return [$grid_dict, $origin_loc_arr, $dest_loc_arr];
+    }
+
+    private function get_caseId($isHoliday) {
+        if ($isHoliday) return 'norm';
+        $rushHourStart = new \DateTime('now', new \DateTimeZone('America/Toronto'));
+        $rushHourStart->setTime(16,30);
+        $diff_sec = time() - $rushHourStart->getTimestamp();
+        if ($diff_sec >=0 && $diff_sec <= 7200) {
+            return 'cgst';
+        }
+        return 'norm';
+    }
+    public function learn_map(&$loc_dict) {
+        $caseId = $this->get_caseId();
+        list($grid_dict, $origin_loc_arr, $dest_loc_arr) = $this->aggregate_locs($loc_dict);
+        list($cached_mat, $missed) = CacheMap::get_mat($origin_loc_arr, $dest_loc_arr);
+        list($sel_origins, $sel_dests) = $this->approx_select($missed);
+        $quota = GoogleMapProxy::get_quota();
+        if ($quota <= 12) {
+            Log::debug('insufficient quota for googlemap');
+            return;
+        }
+        $sel_mat = GoogleMapProxy::get_dist_mat($sel_origins, $sel_dests);
+        CacheMap::set_mat($sel_mat, $caseId);
+    }
+    /*
+     * [in] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str}]
+     * [out] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str, 'gridId':str, 'idx':int, 'adjustLatLng':string}]
+     * return $dist_mat: 2-D double
+     */
+    public function get_dist_mat(&$loc_dict) {
+        list($grid_dict, $origin_loc_arr, $dest_loc_arr) = $this->aggregate_locs($loc_dict);
         $dist_mat = $this->dist_approx($origin_loc_arr, $dest_loc_arr);
         $ret = [];
         foreach ($origin_loc_arr as $i=>$start_loc)
@@ -116,7 +143,7 @@ class MapService{
             }
         }
         else {
-            list($sel_origins, $sel_dests) = $this->approx_select($missed_pairs, $quota);
+            list($sel_origins, $sel_dests) = $this->approx_select($missed_pairs);
             $sel_mat = GoogleMapProxy::get_dist_mat($sel_origins, $sel_dests);
             CacheMap::set_dist_mat($sel_mat);
             foreach ($sel_mat as $start_loc=>$rows) {
@@ -172,7 +199,7 @@ class MapService{
         //quick fix for the wierd return of array_rand; TODO: get a better one
         return  ($n == 1) ? [array_rand($arr,$n)]:array_rand($arr,$n);
     }
-    private function approx_select($missed_pairs, $quota) {
+    private function approx_select($missed_pairs) {
         $starts = [];
         $ends = [];
         $nMissed = 0;
@@ -209,14 +236,5 @@ class MapService{
             }
         }
         return $nEle;
-    }
-    public function calc_mean_ratio() {
-        $to_ratio = function($start_loc, $end_loc, $cached) {
-            $xx = self::toGridIdx(explode(',',$start_loc));
-            $yy = self::toGridIdx(explode(',',$end_loc));
-            $ll = sqrt(($xx[0]-$yy[0])**2 + ($xx[1]-$yy[1])**2);
-            return $cached[0]*1.0/$ll;
-        };
-        return CacheMap::calc_mean_ratio($to_ratio);
     }
 }

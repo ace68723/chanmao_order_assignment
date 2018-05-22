@@ -55,6 +55,12 @@ class DebugController extends Controller
                 'required'=>true,
             ],
         ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
+        $this->consts['REQUEST_PARAS']['learn_map'] = [
+            'area'=>[
+                'checker'=>['is_int', ],
+                'required'=>true,
+            ],
+        ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
 
         if (!$this->check_api_def())
             throw new CmException('SYSTEM_ERROR', "ERROR SETTING IN API SCHEMA");
@@ -107,6 +113,13 @@ class DebugController extends Controller
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_model_cache_service')->get('UniCache');
         $ret = $sp->get($la_paras['log_type']);
+        return $this->format_success_ret($ret);
+    }
+    public function learn_map(Request $request) {
+        $userObj = null;
+        $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
+        $sche_sp = app()->make('cmoa_schedule_service');
+        $ret = $sche_sp->learn_map($la_paras['area']);
         return $this->format_success_ret($ret);
     }
     public function test_map(Request $request) {

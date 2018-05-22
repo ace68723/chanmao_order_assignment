@@ -9,7 +9,7 @@ use App\Exceptions\CmException;
 class CacheMap{
     const PREFIX = "cmoa:map:";
     const KEEP_ALIVE_SEC = 3600*24;
-    const DEG_PRECISION_FORMAT= "%.5f,%.5f";
+    const DEG_PRECISION_FORMAT= "%.4f,%.4f";
     const REDIS_BATCH_SIZE = 50; //TODO change to a larger one, this is for test
     const S2CELL_LEVEL = 20;//must >= 14 <30; lvl 20 cell is about 10m*10m
     const ACCU_MIN_INTER = 3600;
@@ -97,7 +97,7 @@ class CacheMap{
             $tok = self::cellsToToken($cells);
             $rcells = self::tokenToCells($tok);
             $rLocs = self::CellsToExtLoc($rcells);
-            $pats = self::near_patterns($cells, 13);
+            $pats = self::near_patterns($cells, 12);
             $ret[] = [$tok, $rLocs, $pats];
         }
         return $ret;
@@ -178,22 +178,22 @@ class CacheMap{
     static public function query_near($start_loc, $end_loc) {
         $key_prefix = self::PREFIX . "pair:";
         $cells = self::ExtLocToCells($start_loc, $end_loc);
-        $pats = self::near_patterns($cells, 13);
+        $pats = self::near_patterns($cells, 12);
         $data = [];
         foreach($pats as $pat) {
             $keys = Redis::keys($key_prefix.$pat.'*'); // this is limited by the pattern
             if (!empty($keys)) {
-                $values = Redis::mget($keys);
+                $values = Redis::mget(...$keys);
                 foreach($values as $i=>$value) if (!empty($value)){
-                    $token = substr($keys[$i], strrpos($keys[$i],':'));
+                    $token = substr($keys[$i], strrpos($keys[$i],':')+1);
                     $cells = self::tokenToCells($token);
                     $locs = self::CellsToExtLoc($cells);
                     $data[$locs[0]][$locs[1]] = json_decode($value, true);
                 }
-                if (!empty($data)) return $data;
             }
         }
-        return [];
+        Log::debug(__FUNCTION__.":find ".count($data)." recs.");
+        return $data;
     }
     static public function set_dist_mat($dist_mat) {
         $key_prefix = self::PREFIX . "distMat:";
