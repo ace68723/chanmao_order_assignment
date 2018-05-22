@@ -27,9 +27,11 @@ class Kernel extends ConsoleKernel
     {
         //
         $schedule->call(function () {
-            Log::DEBUG('running learn_map');
+            Log::DEBUG('running learn_map from console schedule');
             $sche_sp = app()->make('cmoa_schedule_service');
             $ret = $sche_sp->learn_map(1);
-        })->everyFiveMinutes();
+        })->everyFiveMinutes()
+            ->timezone('America/Toronto')
+            ->between('11:00','23:00');
     }
 }
