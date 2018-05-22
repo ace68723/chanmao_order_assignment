@@ -72,18 +72,22 @@ class MapService{
         return [$grid_dict, $origin_loc_arr, $dest_loc_arr];
     }
 
-    private function get_caseId($isHoliday) {
+    private function get_caseId($isHoliday=null) {
+        $dt = new \DateTime('now', new \DateTimeZone('America/Toronto'));
+        if ($isHoliday === null) {
+            $weekday = $dt->format('w');
+            $isHoliday = ($weekday == '0' || $weekday == '6');
+        }
         if ($isHoliday) return 'norm';
-        $rushHourStart = new \DateTime('now', new \DateTimeZone('America/Toronto'));
-        $rushHourStart->setTime(16,30);
-        $diff_sec = time() - $rushHourStart->getTimestamp();
-        if ($diff_sec >=0 && $diff_sec <= 7200) {
+        $dt->setTime(16,30);
+        $diff_sec = time() - $dt->getTimestamp();
+        if ($diff_sec >=0 && $diff_sec <= 7200) { //4:30pm ~ 6:30pm
             return 'cgst';
         }
         return 'norm';
     }
-    public function learn_map(&$loc_dict) {
-        $caseId = $this->get_caseId();
+    public function learn_map(&$loc_dict, $isHoliday=null) {
+        $caseId = $this->get_caseId($isHoliday);
         list($grid_dict, $origin_loc_arr, $dest_loc_arr) = $this->aggregate_locs($loc_dict);
         list($cached_mat, $missed) = CacheMap::get_mat($origin_loc_arr, $dest_loc_arr);
         list($sel_origins, $sel_dests) = $this->approx_select($missed);
