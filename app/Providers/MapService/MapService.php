@@ -97,7 +97,7 @@ class MapService{
             return;
         }
         $sel_mat = GoogleMapProxy::get_dist_mat($sel_origins, $sel_dests);
-        CacheMap::set_mat($sel_mat, $caseId);
+        CacheMap::update_mat($sel_mat, $caseId);
     }
     /*
      * [in] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str}]

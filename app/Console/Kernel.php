@@ -25,5 +25,10 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         //
+        $schedule->call(function () {
+            Log::DEBUG('running learn_map');
+            $sche_sp = app()->make('cmoa_schedule_service');
+            $ret = $sche_sp->learn_map(1);
+        })->everyFiveMinutes();
     }
 }
