@@ -17,8 +17,6 @@ class DebugController extends Controller
      */
     public function __construct()
     {
-        $this->consts['REQUEST_PARAS']['calc_mean_ratio'] = [
-        ];
         $this->consts['REQUEST_PARAS']['get_orders'] = [
         ];
         $this->consts['REQUEST_PARAS']['get_drivers'] = [
@@ -66,13 +64,6 @@ class DebugController extends Controller
             throw new CmException('SYSTEM_ERROR', "ERROR SETTING IN API SCHEMA");
     }
 
-    public function calc_mean_ratio(Request $request){
-        $userObj = null;
-        $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
-        $sp = app()->make('cmoa_map_service');
-        $ret = $sp->calc_mean_ratio();
-        return $this->format_success_ret($ret);
-    }
     public function get_orders(Request $request){
         $userObj = null;
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
