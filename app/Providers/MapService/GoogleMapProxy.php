@@ -27,6 +27,7 @@ class GoogleMapProxy{
     static public function get_dist_mat($origin_loc_arr, $end_loc_arr) {
         $dist_mat_dict = [];
         $nElem = count($origin_loc_arr) * count($end_loc_arr);
+        if ($nElem == 0) return $dist_mat_dict;
         $quota = self::get_quota();
         if ($nElem>$quota) {
             Log::warn('google_map get dist mat fail because of quota limit');
