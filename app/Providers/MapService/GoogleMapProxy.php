@@ -16,7 +16,7 @@ class GoogleMapProxy{
         $quota = Redis::get("cmoa:googlemap:quota");
         if (is_null($quota)) {
             $quota = self::DAILY_QUOTA;
-            Redis::setex("cmoa:googlemap:quota", 7*24*3600, $quota);
+            Redis::setex("cmoa:googlemap:quota", 24*3600, $quota);
         }
         else {
             $quota = intval($quota);

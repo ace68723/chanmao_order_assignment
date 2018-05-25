@@ -226,6 +226,7 @@ class MapService{
                 $nMissed += 1;
             }
         }
+        if ($nMissed == 0) return [[], []];
         $nStart = min(count($starts),3);
         $nEnd = min(count($ends),4);
         $sel_start = $this->my_array_random($starts, $nStart);
