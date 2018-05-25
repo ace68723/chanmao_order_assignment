@@ -76,6 +76,11 @@ class CacheMap{
             $pairkeys = []; $idx = []; $dudis = [];
         }
     }
+    static public function get($key) {
+        $result = Redis::get(self::PREFIX."pair:".$key);
+        if (empty($result)) return null;
+        return json_decode($result);
+    }
     static public function test() {
         $ret = [];
         $pairs = [];
@@ -233,10 +238,16 @@ class CacheMap{
         Log::debug(__FUNCTION__.":read $n cached items:");
         return $dist_mat;
     }
-    static public function scan($pat='*') {
-        $key_pat = self::PREFIX . "pair:".$pat;
-        $res = Redis::scan(0, $key_pat, 20);
-        return $res;
+    static public function scan($pattern='*') {
+        $key_pat = self::PREFIX."pair:".$pattern;
+        $prefixlen = strlen(self::PREFIX."pair:");
+        $cursor = 0;
+        do {
+            list($cursor, $keys) = Redis::scan($cursor, 'match', $key_pat, 'count', 1000);
+            foreach ($keys as $key) {
+                yield substr($key, $prefixlen);
+            }
+        } while ($cursor);
     }
     static private function cellsToToken($cells, $level=self::S2CELL_LEVEL) {
         $strs = [];

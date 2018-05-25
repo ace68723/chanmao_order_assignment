@@ -37,7 +37,19 @@ class MapService{
         return $ret;
     }
     public function test() {
-        return CacheMap::scan();
+        $keys = CacheMap::scan();
+        $count = 0;
+        $cgst_count = 0;
+        $norm_count = 0;
+        $last = [];
+        foreach($keys as $key) {
+            $rec = CacheMap::get($key);
+            if (!empty($rec['cgst'])) $cgst_count += 1;
+            if (!empty($rec['norm'])) $norm_count += 1;
+            $count += 1;
+            $last = $rec;
+        }
+        return [$count, $norm_count, $cgst_count, $last];
     }
     private function aggregate_locs(&$loc_dict) {
         $grid_dict = [];
