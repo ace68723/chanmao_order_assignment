@@ -35,7 +35,7 @@ class CacheMap{
     static public function extractCase($caseid, &$dist_mat) {
         foreach($dist_mat as $start_loc=>$row) {
             foreach($row as $end_loc=>$elem) {
-                $dist_mat[$start_loc][$end_loc] = $elem[$caseid] ?? $elem['_s'];
+                $dist_mat[$start_loc][$end_loc] = $elem[$caseid][0] ?? $elem['_s'][0];
             }
         }
     }
@@ -136,6 +136,8 @@ class CacheMap{
                 $isNew = self::accumlate($newitem['_s'],$elem[0],$curTime);
                 $shouldUpdate = $isNew;
                 if ($elem[1] != $newitem['_m']) {
+                    Log::debug('CacheMap::update2d:'.$start_loc.'-'.$end_loc.
+                        ':distance changed from '.$newitem['_m']. ' to '.$elem[1]);
                     $newitem['_m'] = $elem[1];
                     $shouldUpdate = true;
                 }
