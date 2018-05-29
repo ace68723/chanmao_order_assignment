@@ -37,7 +37,7 @@ class MapService{
         return $ret;
     }
     public function test() {
-        $items = CacheMap::scan_items();
+        $items = CacheMap::scan_item();
         $count = []; $total_ratio = [];
         foreach(['cgst','norm','_s'] as $i) {
             $count[$i] = 0;
@@ -47,14 +47,16 @@ class MapService{
         foreach($items as $rec) {
             foreach(['cgst','norm'] as $caseId) if (!empty($rec[$caseId])) {
                 $count[$caseId] += 1;
-                $total_ratio[$caseId] = $rec[$caseId]*1.0/$rec['_m'];
+                $total_ratio[$caseId] += $rec[$caseId][0]*1.0/$rec['_m'];
             }
             $count['_s'] += 1;
-            $total_ratio['_s'] = $rec['_s']*1.0/$rec['_m'];
+            $total_ratio['_s'] += $rec['_s'][0]*1.0/$rec['_m'];
             $last = $rec;
         }
         foreach(['cgst','norm','_s'] as $i) {
-            $total_ratio[$i] /= $count[$i];
+            if ($count[$i]>0) {
+                $total_ratio[$i] /= $count[$i];
+            }
         }
         return [$count, $total_ratio, $last];
     }
