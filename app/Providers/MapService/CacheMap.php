@@ -32,6 +32,13 @@ class CacheMap{
         }
         return $ret;
     }
+    static public function extractCase($caseid, &$dist_mat) {
+        foreach($dist_mat as $start_loc=>$row) {
+            foreach($row as $end_loc=>$elem) {
+                $dist_mat[$start_loc][$end_loc] = $elem[$caseid] ?? $elem['_s'];
+            }
+        }
+    }
     static public function get_mat($origin_loc_arr, $end_loc_arr) {
         $key_prefix = self::PREFIX . "pair:";
         $dist_mat = [];
@@ -79,7 +86,7 @@ class CacheMap{
     static public function get($key) {
         $result = Redis::get(self::PREFIX."pair:".$key);
         if (empty($result)) return null;
-        return json_decode($result);
+        return json_decode($result, true);
     }
     static public function test() {
         $ret = [];
@@ -180,12 +187,21 @@ class CacheMap{
         }
         return $pats;
     }
-    static public function query_near($start_loc, $end_loc) {
+    static public function query_near_batch($missed_mat) {
         $key_prefix = self::PREFIX . "pair:";
-        $cells = self::ExtLocToCells($start_loc, $end_loc);
-        $pats = self::near_patterns($cells, 12);
+        $agg_pats = [];
+        foreach($missed_mat as $start_loc=>$row) {
+            foreach($row as $end_loc=>$elem) {
+                $cells = self::ExtLocToCells($start_loc, $end_loc);
+                $level = 13;
+                $pats = self::near_patterns($cells, $level);
+                foreach($pats as $pat) {
+                    $agg_pats[$pat] = 1;
+                }
+            }
+        }
         $data = [];
-        foreach($pats as $pat) {
+        foreach($agg_pats as $pat=>$elem) {
             $keys = Redis::keys($key_prefix.$pat.'*'); // this is limited by the pattern
             if (!empty($keys)) {
                 $values = Redis::mget(...$keys);
@@ -197,9 +213,34 @@ class CacheMap{
                 }
             }
         }
-        Log::debug(__FUNCTION__.":find ".count($data)." recs.");
         return $data;
     }
+    static public function query_near($start_loc, $end_loc) {
+        $key_prefix = self::PREFIX . "pair:";
+        $cells = self::ExtLocToCells($start_loc, $end_loc);
+        for($level=14; $level>=12; $level--) {
+            $pats = self::near_patterns($cells, $level);
+            $data = [];
+            foreach($pats as $pat) {
+                $keys = Redis::keys($key_prefix.$pat.'*'); // this is limited by the pattern
+                if (!empty($keys)) {
+                    $values = Redis::mget(...$keys);
+                    foreach($values as $i=>$value) if (!empty($value)){
+                        $token = substr($keys[$i], strrpos($keys[$i],':')+1);
+                        $cells = self::tokenToCells($token);
+                        $locs = self::CellsToExtLoc($cells);
+                        $data[$locs[0]][$locs[1]] = json_decode($value, true);
+                    }
+                }
+            }
+            if (!empty($data)) {
+                Log::debug(__FUNCTION__.":find ".count($data)." recs.");
+                return $data;
+            }
+        }
+        return [];
+    }
+    /*
     static public function set_dist_mat($dist_mat) {
         $key_prefix = self::PREFIX . "distMat:";
         $curTime = time();
@@ -234,10 +275,10 @@ class CacheMap{
                 $n++;
             }
         }
-        //Log::debug("read $n cached items:".json_encode($dist_mat));
         Log::debug(__FUNCTION__.":read $n cached items:");
         return $dist_mat;
     }
+     */
     static public function scan($pattern='*') {
         $key_pat = self::PREFIX."pair:".$pattern;
         $prefixlen = strlen(self::PREFIX."pair:");
@@ -246,6 +287,19 @@ class CacheMap{
             list($cursor, $keys) = Redis::scan($cursor, 'match', $key_pat, 'count', 1000);
             foreach ($keys as $key) {
                 yield substr($key, $prefixlen);
+            }
+        } while ($cursor);
+    }
+    static public function scan_item($pattern='*') {
+        $key_pat = self::PREFIX."pair:".$pattern;
+        $prefixlen = strlen(self::PREFIX."pair:");
+        $cursor = 0;
+        do {
+            list($cursor, $keys) = Redis::scan($cursor, 'match', $key_pat, 'count', 200);
+            if (empty($keys)) break;
+            $items = Redis::mget(...$keys);
+            foreach ($items as $item) {
+                yield json_decode($item, true);
             }
         } while ($cursor);
     }

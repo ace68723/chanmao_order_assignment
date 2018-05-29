@@ -24,7 +24,7 @@ class GoogleMapProxy{
         Log::debug("got google map quota:".$quota);
         return $quota;
     }
-    static public function get_dist_mat($origin_loc_arr, $end_loc_arr) {
+    static public function get_gm_mat($origin_loc_arr, $end_loc_arr) {
         $dist_mat_dict = [];
         $nElem = count($origin_loc_arr) * count($end_loc_arr);
         if ($nElem == 0) return $dist_mat_dict;
