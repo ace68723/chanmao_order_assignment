@@ -158,20 +158,21 @@ class MapService{
                     Log::debug("zero real duration between:".$start_loc." and ".$end_loc);
                     continue;
                 }
-                $errors[] = [$estm, $real, abs($real-$estm)*1.0/$real];
+                $errors[$start_loc.":".$end_loc] = [$estm, $real, abs($real-$estm)*1.0/$real];
                 $dist_mat[$start_loc][$end_loc] = $real;
             }
         }
         Log::debug(__FUNCTION__.": error".json_encode($errors));
     }
     private function weighted_approx($start_loc, $end_loc, $base_mat,
-        $default_ratio=self::HEURISTIC_RATIO, $max_range_grid=20) {
+        $default_ratio=self::HEURISTIC_RATIO, $max_range_grid_l1=40) {
         $total_weight = 0;
         $total_ratio = 0;
         $xx = self::toGridIdx(explode(',',$start_loc));
         $yy = self::toGridIdx(explode(',',$end_loc));
         $ll = sqrt(($xx[0]-$yy[0])**2 + ($xx[1]-$yy[1])**2);
         $found = false;
+        $infos = [];
         foreach ($base_mat as $start_loc=>$rows) {
             foreach($rows as $end_loc=>$elem) {
                 if ($start_loc == $end_loc) continue;
@@ -179,15 +180,20 @@ class MapService{
                 $x = self::toGridIdx(explode(',',$start_loc));
                 $y = self::toGridIdx(explode(',',$end_loc));
                 $l2_dist = sqrt(($x[0]-$y[0])**2 + ($x[1]-$y[1])**2);
-                if ($l2_dist > $max_range_grid) continue;
                 $ratio = $elem/$l2_dist;
                 $expw = -abs($xx[0]-$x[0])-abs($xx[1]-$x[1])-abs($yy[0]-$y[0])-abs($yy[1]-$y[1]);
+                if (-$expw > $max_range_grid_l1) {
+                    Log::debug(__FUNCTION__.": ignore far item:".$expw);
+                    continue;
+                }
                 $weight = exp($expw/100.0); // heuristic mean for 200*200 grid
-                $total_weight += $weight;
                 $found = true;
+                $total_weight += $weight;
                 $total_ratio += $weight * $ratio;
+                $infos[] = [$start_loc,$end_loc,$weight,$ratio];
             }
         }
+        Log::debug(__FUNCTION__.":".json_encode($infos));
         return (int)round($ll * ($found ? $total_ratio/$total_weight : $default_ratio));
     }
     private function my_array_random($arr, $n) {
