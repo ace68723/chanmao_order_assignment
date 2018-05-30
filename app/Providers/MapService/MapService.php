@@ -133,9 +133,8 @@ class MapService{
         return $ret;
     }
     private function dist_approx_from_cache($origin_loc_arr, $dest_loc_arr, $caseId) {
-        list($cached_mat, $missed_pairs) = CacheMap::get_mat($origin_loc_arr, $dest_loc_arr);
-        CacheMap::extractCase($caseId, $cached_mat);
-        $dist_mat = $cached_mat;
+        list($dist_mat, $missed_pairs) = CacheMap::get_mat($origin_loc_arr, $dest_loc_arr);
+        CacheMap::extractCase($caseId, $dist_mat);
         if (empty($missed_pairs)) return [$dist_mat,$missed_pairs];
         $sel_mat = CacheMap::query_near_batch($missed_pairs);
         CacheMap::extractCase($caseId, $sel_mat);
@@ -168,7 +167,7 @@ class MapService{
     private function weighted_approx($start_loc, $end_loc, $base_mat,
         $default_ratio=self::HEURISTIC_RATIO, $max_range_grid=20) {
         $total_weight = 0;
-        $total_ratio = [0,0];
+        $total_ratio = 0;
         $xx = self::toGridIdx(explode(',',$start_loc));
         $yy = self::toGridIdx(explode(',',$end_loc));
         $ll = sqrt(($xx[0]-$yy[0])**2 + ($xx[1]-$yy[1])**2);
@@ -176,22 +175,20 @@ class MapService{
         foreach ($base_mat as $start_loc=>$rows) {
             foreach($rows as $end_loc=>$elem) {
                 if ($start_loc == $end_loc) continue;
-                $dist_mat[$start_loc][$end_loc] = $elem[0];
+                $dist_mat[$start_loc][$end_loc] = $elem;
                 $x = self::toGridIdx(explode(',',$start_loc));
                 $y = self::toGridIdx(explode(',',$end_loc));
                 $l2_dist = sqrt(($x[0]-$y[0])**2 + ($x[1]-$y[1])**2);
                 if ($l2_dist > $max_range_grid) continue;
-                $ratio = [$elem[0]/$l2_dist, $elem[1]/$l2_dist];
+                $ratio = $elem/$l2_dist;
                 $expw = -abs($xx[0]-$x[0])-abs($xx[1]-$x[1])-abs($yy[0]-$y[0])-abs($yy[1]-$y[1]);
                 $weight = exp($expw/100.0); // heuristic mean for 200*200 grid
                 $total_weight += $weight;
                 $found = true;
-                for($i=0; $i<2; $i++){
-                    $total_ratio[$i] += $weight * $ratio[$i];
-                }
+                $total_ratio += $weight * $ratio;
             }
         }
-        return (int)round($ll * ($found ? $total_ratio[0]/$total_weight : $default_ratio));
+        return (int)round($ll * ($found ? $total_ratio/$total_weight : $default_ratio));
     }
     private function my_array_random($arr, $n) {
         //quick fix for the wierd return of array_rand; TODO: get a better one
