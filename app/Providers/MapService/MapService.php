@@ -93,7 +93,7 @@ class MapService{
         return [$grid_dict, $origin_loc_arr, $dest_loc_arr];
     }
 
-    private function get_caseId($isHoliday=null) {
+    public function get_caseId($isHoliday=null) {
         $dt = new \DateTime('now', new \DateTimeZone('America/Toronto'));
         if ($isHoliday === null) {
             $weekday = $dt->format('w');
@@ -112,11 +112,6 @@ class MapService{
         list($grid_dict, $origin_loc_arr, $dest_loc_arr) = $this->aggregate_locs($loc_dict);
         list($cached_mat, $missed) = CacheMap::get_mat($origin_loc_arr, $dest_loc_arr);
         list($sel_origins, $sel_dests) = $this->approx_select($missed);
-        $quota = GoogleMapProxy::get_quota();
-        if ($quota <= 12) {
-            Log::debug('insufficient quota for googlemap');
-            return;
-        }
         $sel_mat = GoogleMapProxy::get_gm_mat($sel_origins, $sel_dests);
         CacheMap::update_mat($sel_mat, $caseId);
     }
@@ -142,6 +137,7 @@ class MapService{
         $dist_mat = $cached_mat;
         if (empty($missed_pairs)) return $dist_mat;
         $sel_mat = CacheMap::query_near_batch($missed_pairs);
+        CacheMap::extractCase($caseId, $sel_mat);
         foreach ($missed_pairs as $start_loc=>$missed_rows) {
             foreach ($missed_rows as $end_loc=>$missed_elem) {
                 $dist_mat[$start_loc][$end_loc] = $this->weighted_approx($start_loc, $end_loc, $sel_mat);

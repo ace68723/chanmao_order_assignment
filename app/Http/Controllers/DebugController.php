@@ -113,6 +113,13 @@ class DebugController extends Controller
         $ret = $sche_sp->learn_map($la_paras['area']);
         return $this->format_success_ret($ret);
     }
+    public function get_map_caseId(Request $request){
+        $userObj = null;
+        //$la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
+        $sp = app()->make('cmoa_map_service');
+        $ret = $sp->get_caseId();
+        return $this->format_success_ret($ret);
+    }
     public function test_map(Request $request) {
         $map_sp = app()->make('cmoa_map_service');
         $ret = $map_sp->test();
