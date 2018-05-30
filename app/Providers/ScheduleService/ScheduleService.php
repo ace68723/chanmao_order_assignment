@@ -274,10 +274,10 @@ class ScheduleService{
         $input = $this->reload($areaId);
         $task_dict = $input['task_dict'];
         $driver_dict = $input['driver_dict'];
+        $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         if (count($task_dict)==0 || count($driver_dict)==0) {
             return $scheCache->get_schedules(null, $areaId);
         }
-        $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         $uniCache = app()->make('cmoa_model_cache_service')->get('UniCache');
         $new_input_sign = $this->calc_input_sign($input);
         if ($force_redo || $uniCache->get('signScheInput') != $new_input_sign) {

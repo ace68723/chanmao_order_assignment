@@ -123,7 +123,8 @@ class MapService{
     public function get_dist_mat(&$loc_dict, $isHoliday=null) {
         $caseId = $this->get_caseId($isHoliday);
         list($grid_dict, $origin_loc_arr, $dest_loc_arr) = $this->aggregate_locs($loc_dict);
-        $dist_mat = $this->dist_approx_from_cache($origin_loc_arr, $dest_loc_arr, $caseId);
+        list($dist_mat, $missed) = $this->dist_approx_from_cache($origin_loc_arr, $dest_loc_arr, $caseId);
+        $this->verify($dist_mat,$missed,$caseId);
         $ret = [];
         foreach ($origin_loc_arr as $i=>$start_loc)
             foreach ($origin_loc_arr as $j=>$end_loc) {
@@ -135,7 +136,7 @@ class MapService{
         list($cached_mat, $missed_pairs) = CacheMap::get_mat($origin_loc_arr, $dest_loc_arr);
         CacheMap::extractCase($caseId, $cached_mat);
         $dist_mat = $cached_mat;
-        if (empty($missed_pairs)) return $dist_mat;
+        if (empty($missed_pairs)) return [$dist_mat,$missed_pairs];
         $sel_mat = CacheMap::query_near_batch($missed_pairs);
         CacheMap::extractCase($caseId, $sel_mat);
         foreach ($missed_pairs as $start_loc=>$missed_rows) {
@@ -143,7 +144,26 @@ class MapService{
                 $dist_mat[$start_loc][$end_loc] = $this->weighted_approx($start_loc, $end_loc, $sel_mat);
             }
         }
-        return $dist_mat;
+        return [$dist_mat,$missed_pairs];
+    }
+    private function verify(&$dist_mat, $missed, $caseId) {
+        list($sel_origins, $sel_dests) = $this->approx_select($missed);
+        $sel_mat = GoogleMapProxy::get_gm_mat($sel_origins, $sel_dests);
+        CacheMap::update_mat($sel_mat, $caseId);
+        $errors = [];
+        foreach($sel_mat as $start_loc=>$row) {
+            foreach($row as $end_loc=>$elem) {
+                $estm = $dist_mat[$start_loc][$end_loc];
+                $real = $elem[0];
+                if ($real == 0) {
+                    Log::debug("zero real duration between:".$start_loc." and ".$end_loc);
+                    continue;
+                }
+                $errors[] = [$estm, $real, abs($real-$estm)*1.0/$real];
+                $dist_mat[$start_loc][$end_loc] = $real;
+            }
+        }
+        Log::debug(__FUNCTION__.": error".json_encode($errors));
     }
     private function weighted_approx($start_loc, $end_loc, $base_mat,
         $default_ratio=self::HEURISTIC_RATIO, $max_range_grid=20) {
