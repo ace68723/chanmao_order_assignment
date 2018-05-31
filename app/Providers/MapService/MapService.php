@@ -136,11 +136,13 @@ class MapService{
         list($dist_mat, $missed_pairs) = CacheMap::get_mat($origin_loc_arr, $dest_loc_arr);
         CacheMap::extractCase($caseId, $dist_mat);
         if (empty($missed_pairs)) return [$dist_mat,$missed_pairs];
-        $sel_mat = CacheMap::query_near_batch($missed_pairs);
-        CacheMap::extractCase($caseId, $sel_mat);
+        //$sel_mat = CacheMap::query_near_batch($missed_pairs);
+        //CacheMap::extractCase($caseId, $sel_mat);
         foreach ($missed_pairs as $start_loc=>$missed_rows) {
             foreach ($missed_rows as $end_loc=>$missed_elem) {
-                $dist_mat[$start_loc][$end_loc] = $this->weighted_approx($start_loc, $end_loc, $sel_mat);
+                $near_mat = CacheMap::query_near($start_loc,$end_loc);
+                CacheMap::extractCase($caseId, $near_mat);
+                $dist_mat[$start_loc][$end_loc] = $this->weighted_approx($start_loc, $end_loc, $near_mat);
             }
         }
         return [$dist_mat,$missed_pairs];
@@ -165,16 +167,18 @@ class MapService{
         Log::debug(__FUNCTION__.": error".json_encode($errors));
     }
     private function weighted_approx($start_loc, $end_loc, $base_mat,
-        $default_ratio=self::HEURISTIC_RATIO, $max_range_grid_l1=100) {
+        $default_ratio=self::HEURISTIC_RATIO, $max_range_grid_l1=40) {
         $total_weight = 0;
         $total_ratio = 0;
         $xx = self::toGridIdx(explode(',',$start_loc));
         $yy = self::toGridIdx(explode(',',$end_loc));
         $ll = sqrt(($xx[0]-$yy[0])**2 + ($xx[1]-$yy[1])**2);
         $found = false;
+        $count = ['nBase'=>0,'nFar'=>0];
         foreach ($base_mat as $start_loc=>$rows) {
             foreach($rows as $end_loc=>$elem) {
                 if ($start_loc == $end_loc) continue;
+                $count['nBase'] += 1;
                 $dist_mat[$start_loc][$end_loc] = $elem;
                 $x = self::toGridIdx(explode(',',$start_loc));
                 $y = self::toGridIdx(explode(',',$end_loc));
@@ -182,14 +186,16 @@ class MapService{
                 $ratio = $elem/$l2_dist;
                 $expw = -abs($xx[0]-$x[0])-abs($xx[1]-$x[1])-abs($yy[0]-$y[0])-abs($yy[1]-$y[1]);
                 if (-$expw > $max_range_grid_l1) {
+                    $count['nFar'] += 1;
                     continue;
                 }
-                $weight = exp($expw/100.0); // heuristic mean for 200*200 grid
+                $weight = exp($expw/$max_range_grid_l1); //100 is heuristic mean for 200*200 grid
                 $found = true;
                 $total_weight += $weight;
                 $total_ratio += $weight * $ratio;
             }
         }
+        Log::debug(__FUNCTION__.": count:".json_encode($count));
         return (int)round($ll * ($found ? $total_ratio/$total_weight : $default_ratio));
     }
     private function my_array_random($arr, $n) {
@@ -207,6 +213,7 @@ class MapService{
                 $nMissed += 1;
             }
         }
+        Log::debug(__FUNCTION__.": #missed items=".$nMissed);
         if ($nMissed == 0) return [[], []];
         $nStart = min(count($starts),3);
         $nEnd = min(count($ends),4);
