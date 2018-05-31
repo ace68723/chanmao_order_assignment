@@ -138,7 +138,7 @@ class MapService{
         if (empty($missed_pairs)) return [$dist_mat,$missed_pairs];
         //$sel_mat = CacheMap::query_near_batch($missed_pairs);
         //CacheMap::extractCase($caseId, $sel_mat);
-        CacheMap::approx_mat($missed_pairs, $dist_mat, [__CLASS__,'weighted_approx']);
+        CacheMap::approx_mat($missed_pairs, $dist_mat, $caseId, [__CLASS__,'weighted_approx']);
         return [$dist_mat,$missed_pairs];
     }
     private function verify(&$dist_mat, $missed, $caseId) {
