@@ -217,7 +217,7 @@ class CacheMap{
     static public function approx_mat($missed_pairs, &$dist_mat, $approx_func) {
         foreach ($missed_pairs as $start_loc=>$missed_rows) {
             foreach ($missed_rows as $end_loc=>$missed_elem) {
-                $near_mat = self::query_near($start_loc,$end_loc,$pipe);
+                $near_mat = self::query_near($start_loc,$end_loc);
                 self::extractCase($caseId, $near_mat);
                 $dist_mat[$start_loc][$end_loc] = $approx_func($start_loc, $end_loc, $near_mat);
             }
