@@ -100,6 +100,7 @@ int ALG::formatSchedule(unsigned int nDriver)
     {
         CScheduleItem si;
         si.did = drivers[i].did;
+        si.eva = drivers[i]._eva;
         si.tids.clear();
         si.completeTime.clear();
         CTime fTimes[MAXNPARALLELTASKS];

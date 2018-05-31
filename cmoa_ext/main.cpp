@@ -76,6 +76,7 @@ Php::Value prepareOutput(int ret, vector<CScheduleItem> &schedule)
     for (unsigned int i=0; i<schedule.size(); i++)
     {
         schdItem["did"] = schedule[i].did;
+        schdItem["eva"] = schedule[i].eva;
         Php::Value taskList;
         Php::Value completeTime;
         for (unsigned int j=0; j<schedule[i].tids.size(); j++) {

@@ -135,6 +135,7 @@ class CScheduleItem
 { 
 public:
     CID did;
+    double eva;
     vector<CID>  tids; //the tasks assigned to this driver, in chronological order
     vector<CTime>  completeTime;
 };
