@@ -138,15 +138,7 @@ class MapService{
         if (empty($missed_pairs)) return [$dist_mat,$missed_pairs];
         //$sel_mat = CacheMap::query_near_batch($missed_pairs);
         //CacheMap::extractCase($caseId, $sel_mat);
-        Redis::pipeline(function($pipe) use (&$missed_pairs, &$dist_mat) {
-        foreach ($missed_pairs as $start_loc=>$missed_rows) {
-            foreach ($missed_rows as $end_loc=>$missed_elem) {
-                $near_mat = CacheMap::query_near_w_pipe($start_loc,$end_loc,$pipe);
-                CacheMap::extractCase($caseId, $near_mat);
-                $dist_mat[$start_loc][$end_loc] = $this->weighted_approx($start_loc, $end_loc, $near_mat);
-            }
-        }
-        });
+        CacheMap::approx_mat($missed_pairs, $dist_mat, [__CLASS__,'weighted_approx']);
         return [$dist_mat,$missed_pairs];
     }
     private function verify(&$dist_mat, $missed, $caseId) {
@@ -168,7 +160,7 @@ class MapService{
         }
         Log::debug(__FUNCTION__.": error".json_encode($errors));
     }
-    private function weighted_approx($start_loc, $end_loc, $base_mat,
+    static public function weighted_approx($start_loc, $end_loc, $base_mat,
         $default_ratio=self::HEURISTIC_RATIO, $max_range_grid_l1=40) {
         $total_weight = 0;
         $total_ratio = 0;
