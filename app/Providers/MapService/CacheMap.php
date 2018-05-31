@@ -214,41 +214,14 @@ class CacheMap{
         }
         return $data;
     }
-    static public function query_near_w_pipe($start_loc, $end_loc, $pipe) {
-        $key_prefix = self::PREFIX . "pair:";
-        $cells = self::ExtLocToCells($start_loc, $end_loc);
-        for($level=self::NEAR_LEVEL_MAX; $level>=self::NEAR_LEVEL_MIN; $level--) {
-            $pats = self::near_patterns($cells, $level);
-            $data = [];
-            foreach($pats as $pat) {
-                $keys = $pipe->keys($key_prefix.$pat.'*'); // this is limited by the pattern; but still be careful
-                if (!empty($keys)) {
-                    $values = $pipe->mget(...$keys);
-                    foreach($values as $i=>$value) if (!empty($value)){
-                        $token = substr($keys[$i], strrpos($keys[$i],':')+1);
-                        $cells = self::tokenToCells($token);
-                        $locs = self::CellsToExtLoc($cells);
-                        $data[$locs[0]][$locs[1]] = json_decode($value, true);
-                    }
-                }
-            }
-            if (!empty($data)) {
-                Log::debug(__FUNCTION__.":find ".count($data)." recs.");
-                return $data;
-            }
-        }
-        return [];
-    }
     static public function approx_mat($missed_pairs, &$dist_mat, $approx_func) {
-        Redis::pipeline(function($pipe) use (&$missed_pairs, &$dist_mat, &$approx_func) {
         foreach ($missed_pairs as $start_loc=>$missed_rows) {
             foreach ($missed_rows as $end_loc=>$missed_elem) {
-                $near_mat = self::query_near_w_pipe($start_loc,$end_loc,$pipe);
+                $near_mat = self::query_near($start_loc,$end_loc,$pipe);
                 self::extractCase($caseId, $near_mat);
                 $dist_mat[$start_loc][$end_loc] = $approx_func($start_loc, $end_loc, $near_mat);
             }
         }
-        });
     }
     static public function query_near($start_loc, $end_loc) {
         $key_prefix = self::PREFIX . "pair:";
