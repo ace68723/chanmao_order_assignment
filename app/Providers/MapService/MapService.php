@@ -138,13 +138,15 @@ class MapService{
         if (empty($missed_pairs)) return [$dist_mat,$missed_pairs];
         //$sel_mat = CacheMap::query_near_batch($missed_pairs);
         //CacheMap::extractCase($caseId, $sel_mat);
+        Redis::pipeline(function($pipe) use (&$missed_pairs, &$dist_mat) {
         foreach ($missed_pairs as $start_loc=>$missed_rows) {
             foreach ($missed_rows as $end_loc=>$missed_elem) {
-                $near_mat = CacheMap::query_near($start_loc,$end_loc);
+                $near_mat = CacheMap::query_near_w_pipe($start_loc,$end_loc,$pipe);
                 CacheMap::extractCase($caseId, $near_mat);
                 $dist_mat[$start_loc][$end_loc] = $this->weighted_approx($start_loc, $end_loc, $near_mat);
             }
         }
+        });
         return [$dist_mat,$missed_pairs];
     }
     private function verify(&$dist_mat, $missed, $caseId) {
@@ -199,7 +201,7 @@ class MapService{
         return (int)round($ll * ($found ? $total_ratio/$total_weight : $default_ratio));
     }
     private function my_array_random($arr, $n) {
-        //quick fix for the wierd return of array_rand; TODO: get a better one
+        //quick fix for the wierd return of array_rand; TODO: use a better one
         return  ($n == 1) ? [array_rand($arr,$n)]:array_rand($arr,$n);
     }
     private function approx_select($missed_pairs) {

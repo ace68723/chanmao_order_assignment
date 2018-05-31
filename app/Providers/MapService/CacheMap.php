@@ -12,6 +12,8 @@ class CacheMap{
     const DEG_PRECISION_FORMAT= "%.4f,%.4f";
     const REDIS_BATCH_SIZE = 50; //TODO change to a larger one, this is for test
     const S2CELL_LEVEL = 20;//must >= 14 <30; lvl 20 cell is about 10m*10m
+    const NEAR_LEVEL_MAX = 14;
+    const NEAR_LEVEL_MIN = 12;
     const ACCU_MIN_INTER = 3600;
     const ACCU_MAX_INTER = 3600*24*7;
 
@@ -82,11 +84,6 @@ class CacheMap{
             self::update2d($pairkeys, $idx, $dudis, $caseid);
             $pairkeys = []; $idx = []; $dudis = [];
         }
-    }
-    static public function get($key) {
-        $result = Redis::get(self::PREFIX."pair:".$key);
-        if (empty($result)) return null;
-        return json_decode($result, true);
     }
     static public function test() {
         $ret = [];
@@ -217,10 +214,35 @@ class CacheMap{
         }
         return $data;
     }
+    static public function query_near_w_pipe($start_loc, $end_loc, $pipe) {
+        $key_prefix = self::PREFIX . "pair:";
+        $cells = self::ExtLocToCells($start_loc, $end_loc);
+        for($level=self::NEAR_LEVEL_MAX; $level>=self::NEAR_LEVEL_MIN; $level--) {
+            $pats = self::near_patterns($cells, $level);
+            $data = [];
+            foreach($pats as $pat) {
+                $keys = $pipe->keys($key_prefix.$pat.'*'); // this is limited by the pattern; but still be careful
+                if (!empty($keys)) {
+                    $values = $pipe->mget(...$keys);
+                    foreach($values as $i=>$value) if (!empty($value)){
+                        $token = substr($keys[$i], strrpos($keys[$i],':')+1);
+                        $cells = self::tokenToCells($token);
+                        $locs = self::CellsToExtLoc($cells);
+                        $data[$locs[0]][$locs[1]] = json_decode($value, true);
+                    }
+                }
+            }
+            if (!empty($data)) {
+                Log::debug(__FUNCTION__.":find ".count($data)." recs.");
+                return $data;
+            }
+        }
+        return [];
+    }
     static public function query_near($start_loc, $end_loc) {
         $key_prefix = self::PREFIX . "pair:";
         $cells = self::ExtLocToCells($start_loc, $end_loc);
-        for($level=14; $level>=12; $level--) {
+        for($level=self::NEAR_LEVEL_MAX; $level>=self::NEAR_LEVEL_MIN; $level--) {
             $pats = self::near_patterns($cells, $level);
             $data = [];
             foreach($pats as $pat) {
