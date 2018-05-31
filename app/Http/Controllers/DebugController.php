@@ -91,11 +91,11 @@ class DebugController extends Controller
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_model_cache_service')->get('LogCache');
         if ($la_paras['timestamp'] <= 0) {
-            $ret = $sp->get_last($la_paras['log_type']);
+            list($logTime, $ret) = $sp->get_last($la_paras['log_type']);
+            $ret['logTime'] = $logTime;
         }
         else {
-            list($logTime, $ret) = $sp->get($la_paras['log_type'], $la_paras['timestamp']);
-            $ret['logTime'] = $logTime;
+            $ret = $sp->get($la_paras['log_type'], $la_paras['timestamp']);
         }
         return $this->format_success_ret($ret);
     }

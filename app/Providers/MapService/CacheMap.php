@@ -192,7 +192,7 @@ class CacheMap{
         foreach($missed_mat as $start_loc=>$row) {
             foreach($row as $end_loc=>$elem) {
                 $cells = self::ExtLocToCells($start_loc, $end_loc);
-                $level = 13;
+                $level = self::NEAR_LEVEL_MAX;
                 $pats = self::near_patterns($cells, $level);
                 foreach($pats as $pat) {
                     $agg_pats[$pat] = 1;
@@ -242,7 +242,7 @@ class CacheMap{
                 }
             }
             if (!empty($data)) {
-                Log::debug(__FUNCTION__.":find ".count($data)." recs.");
+                Log::debug(__FUNCTION__.":find ".count($data)." recs at level ".$level);
                 return $data;
             }
         }
