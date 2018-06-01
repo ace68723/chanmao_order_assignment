@@ -169,7 +169,7 @@ private:
     static void _searchOptTime(CDriver &driver, CTime curTime, int curLoc, int nFinished, int n,
         int tids[], int sol[], bool taskDoneMark[], double &bestFTime, int bestSol[]);
     static void _searchwEva(CDriver &driver, CTime curTime, int curLoc, int nFinished, int n,
-        int tids[], int sol[], bool taskDoneMark[], double &bestFTime, int bestSol[], double bestEva);
+        int tids[], int sol[], bool taskDoneMark[], double &bestFTime, int bestSol[], double &bestEva);
 
 };
 #endif

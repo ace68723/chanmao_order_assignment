@@ -69,6 +69,7 @@ bool ALG::arrange_future_tasks(CDriver &driver)
 {
     if (driver._nOrder >= 0) return true;
     double bestFTime = -1;
+    double bestEva = 0;
     int bestSol[MAXNPARALLELTASKS];
     int tids[MAXNPARALLELTASKS];
     int sol[MAXNPARALLELTASKS];
@@ -81,7 +82,7 @@ bool ALG::arrange_future_tasks(CDriver &driver)
         driver._nOrder += (tasks[tids[i]].nextTask==NULL_ID);
     }
     //vector<bool> mark(n, false);
-    _searchwEva(driver, driver._available, driver._loc, 0, n, tids, sol, taskDoneMark, bestFTime, bestSol, 0);
+    _searchwEva(driver, driver._available, driver._loc, 0, n, tids, sol, taskDoneMark, bestFTime, bestSol, bestEva);
     if (bestFTime<0) return false;
     if (n != driver._assignedTasks.size()) return false;
     for (unsigned int j=0; j<n; j++) {
@@ -230,6 +231,7 @@ bool ALG::tryAssignOrderToDriver(int iTask, CDriver &driver, double &evaDiff, un
     arrange_future_tasks(driver);
     if (driver._nOrder >= driver.maxNOrder) return false;
     double bestFTime = -1;
+    double bestEva = 0;
     int sol[MAXNPARALLELTASKS];
     int tids[MAXNPARALLELTASKS];
     bool taskDoneMark[MAXNTASKS];
@@ -243,14 +245,14 @@ bool ALG::tryAssignOrderToDriver(int iTask, CDriver &driver, double &evaDiff, un
         n++;
         iTask = tasks[iTask].nextTask;
     }
-    _searchwEva(driver, driver._available, driver._loc, 0, n, tids, sol, taskDoneMark, bestFTime, bestSol, 0);
+    _searchwEva(driver, driver._available, driver._loc, 0, n, tids, sol, taskDoneMark, bestFTime, bestSol, bestEva);
     if (bestFTime<0 || bestFTime>driver.offTime) return false;
     evaDiff = -driver._eva + calEva(driver, n, bestSol);
     return true;
 }
 
 void ALG::_searchwEva(CDriver &driver, CTime curTime, int curLoc, int nFinished, int n,
-        int tids[], int sol[], bool taskDoneMark[], double &bestFTime, int bestSol[], double bestEva)
+        int tids[], int sol[], bool taskDoneMark[], double &bestFTime, int bestSol[], double &bestEva)
 {
     if (nFinished == n) {
         double eva = calEva(driver, n, sol);
