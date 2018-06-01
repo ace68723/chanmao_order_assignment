@@ -236,7 +236,7 @@ class CacheMap{
     static public function near_filter_conv($keys, $center_cells, $nFirst) {
         $dists = []; $cell_dict=[];
         foreach($keys as $key) {
-            $token = substr($key, strrpos($keys[$i],':')+1);
+            $token = substr($key, strrpos($key,':')+1);
             $cells = self::tokenToCells($token);
             $sum_dist = 0;
             for($i=0;$i<2;$i++) {
@@ -289,21 +289,22 @@ class CacheMap{
         $key_prefix = self::PREFIX . "pair:";
         for($level=self::NEAR_LEVEL_MAX; $level>=self::NEAR_LEVEL_MIN; $level--) {
             $pats = self::near_patterns_agg($cell_pair, $level);
-            $data = [];
+            $data = []; $keys = [];
             foreach($pats as $pat) {
-                $keys = Redis::keys($key_prefix.$pat.'*'); // this is limited by the pattern
-                if (empty($keys)) continue;
-                list($dists, $cell_dict) = self::near_filter_conv($keys, $cell_pair, $nFirst);
-                $keys = array_keys($dists);
-                $values = Redis::mget(...$keys);
-                foreach($values as $i=>$value) if (!empty($value)){
-                    $elem = json_decode($value, true);
-                    $data[] = [
-                        'v'=>($elem[$caseId][0] ?? $elem['_s'][0]),
-                        'sum_diff_dist'=> $dists[$keys[$i]],
-                        'cells'=> $cell_dict[$keys[$i]],
-                    ];
-                }
+                $newkeys = Redis::keys($key_prefix.$pat.'*'); // this is limited by the pattern
+                $keys = array_merge($keys,$newkeys);
+            }
+            if (empty($keys)) continue;
+            list($dists, $cell_dict) = self::near_filter_conv($keys, $cell_pair, $nFirst);
+            $keys = array_keys($dists);
+            $values = Redis::mget(...$keys);
+            foreach($values as $i=>$value) if (!empty($value)){
+                $elem = json_decode($value, true);
+                $data[] = [
+                    'v'=>($elem[$caseId][0] ?? $elem['_s'][0]),
+                    'sum_diff_dist'=> $dists[$keys[$i]],
+                    'cells'=> $cell_dict[$keys[$i]],
+                ];
             }
             if (!empty($data)) {
                 Log::debug(__FUNCTION__.":find ".count($data)." recs at level ".$level);
