@@ -16,6 +16,7 @@ class CacheMap{
     const NEAR_LEVEL_MIN = 12;
     const ACCU_MIN_INTER = 3600;
     const ACCU_MAX_INTER = 3600*24*7;
+    const HEURISTIC_RATIO = 118.75;
 
     static public function ExtLocToCells($start_loc, $end_loc) {
         $cells = [];
@@ -229,31 +230,79 @@ class CacheMap{
         }
         return $data;
     }
-    static public function approx_mat($missed_pairs, &$dist_mat, $caseId, $approx_func) {
+    static private function dist_km($cell_a, $cell_b) {
+        return $cell_a->toLatLng()->getEarthDistance($cell_b->toLatLng())/1000.0;
+    }
+    static public function near_filter_conv($keys, $center_cells, $nFirst) {
+        $dists = []; $cell_dict=[];
+        foreach($keys as $key) {
+            $token = substr($key, strrpos($keys[$i],':')+1);
+            $cells = self::tokenToCells($token);
+            $sum_dist = 0;
+            for($i=0;$i<2;$i++) {
+                $sum_dist += self::dist_km($center_cells[$i], $cells[$i]);
+            }
+            $dists[$key] = $sum_dist;
+            $cell_dict[$key] = $cells;
+        }
+        if ( count($dists) > $nFirst ) {
+            asort($dists);
+            $dists = array_slice($dists, 0, $nFirst);
+        }
+        return [$dists, $cell_dict]; //$dists may be shorter than $cell_dict
+    }
+    static public function weighted_approx($cell_pair, $ref_data,
+        $default_ratio=self::HEURISTIC_RATIO, $max_range_km=2.4)
+    {
+        $total_weight = 0;
+        $total_ratio = 0;
+        $ll = self::dist_km($cell_pair[0], $cell_pair[1]);
+        $found = false;
+        $count = ['nBase'=>0,'nFar'=>0];
+        foreach ($ref_data as $ref_item) {
+                $count['nBase'] += 1;
+                $l2_dist = self::dist_km($ref_item['cells'][0],$ref_item['cells'][1]);
+                $ratio = $ref_item['v']/$l2_dist;
+                $expw = $ref_item['sum_diff_dist'];
+                if (-$expw > $max_range_km) {
+                    $count['nFar'] += 1;
+                    continue;
+                }
+                $weight = exp($expw/$max_range_km);//100 is heuristic mean for 200*200 grid
+                $found = true;
+                $total_weight += $weight;
+                $total_ratio += $weight * $ratio;
+        }
+        Log::debug(__FUNCTION__.": count:".json_encode($count));
+        return (int)round($ll * ($found ? $total_ratio/$total_weight : $default_ratio));
+    }
+    static public function approx_mat($missed_pairs, &$dist_mat, $caseId) {
         foreach ($missed_pairs as $start_loc=>$missed_rows) {
             foreach ($missed_rows as $end_loc=>$missed_elem) {
-                $near_mat = self::query_near($start_loc,$end_loc);
-                self::extractCase($caseId, $near_mat);
-                $dist_mat[$start_loc][$end_loc] = $approx_func($start_loc, $end_loc, $near_mat);
+                $cell_pair = self::ExtLocToCells($start_loc, $end_loc);
+                $ref_data = self::query_near($cell_pair, $caseId);
+                $dist_mat[$start_loc][$end_loc] = self::weighted_approx($cell_pair, $ref_data);
             }
         }
     }
-    static public function query_near($start_loc, $end_loc) {
+    static private function query_near($cell_pair, $caseId, $nFirst=5) {
         $key_prefix = self::PREFIX . "pair:";
-        $cells = self::ExtLocToCells($start_loc, $end_loc);
         for($level=self::NEAR_LEVEL_MAX; $level>=self::NEAR_LEVEL_MIN; $level--) {
-            $pats = self::near_patterns_agg($cells, $level);
+            $pats = self::near_patterns_agg($cell_pair, $level);
             $data = [];
             foreach($pats as $pat) {
                 $keys = Redis::keys($key_prefix.$pat.'*'); // this is limited by the pattern
-                if (!empty($keys)) {
-                    $values = Redis::mget(...$keys);
-                    foreach($values as $i=>$value) if (!empty($value)){
-                        $token = substr($keys[$i], strrpos($keys[$i],':')+1);
-                        $cells = self::tokenToCells($token);
-                        $locs = self::CellsToExtLoc($cells);
-                        $data[$locs[0]][$locs[1]] = json_decode($value, true);
-                    }
+                if (empty($keys)) continue;
+                list($dists, $cell_dict) = self::near_filter_conv($keys, $cell_pair, $nFirst);
+                $keys = array_keys($dists);
+                $values = Redis::mget(...$keys);
+                foreach($values as $i=>$value) if (!empty($value)){
+                    $elem = json_decode($value, true);
+                    $data[] = [
+                        'v'=>($elem[$caseId][0] ?? $elem['_s'][0]),
+                        'sum_diff_dist'=> $dists[$keys[$i]],
+                        'cells'=> $cell_dict[$keys[$i]],
+                    ];
                 }
             }
             if (!empty($data)) {
