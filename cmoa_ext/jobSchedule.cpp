@@ -270,8 +270,7 @@ void ALG::_searchwEva(CDriver &driver, CTime curTime, int curLoc, int nFinished,
         return;
     }
     //prune
-    if (bestFTime >= 0 && curTime > bestFTime && nFinished < n/2)
-        return;
+    if (bestFTime >= 0 && n>=8 && curTime > bestFTime && nFinished < n/2) return;
     for (int j=nFinished; j<n; j++) {
         int i = tids[j];
         CTime arvTime = curTime + MOVING_TIME(curLoc,tasks[i].location,driver);
