@@ -81,7 +81,7 @@ bool ALG::arrange_future_tasks(CDriver &driver)
         driver._nOrder += (tasks[tids[i]].nextTask==NULL_ID);
     }
     //vector<bool> mark(n, false);
-    _searchOptTime(driver, driver._available, driver._loc, 0, n, tids, sol, taskDoneMark, bestFTime, bestSol);
+    _searchwEva(driver, driver._available, driver._loc, 0, n, tids, sol, taskDoneMark, bestFTime, bestSol, 0);
     if (bestFTime<0) return false;
     if (n != driver._assignedTasks.size()) return false;
     for (unsigned int j=0; j<n; j++) {
@@ -243,12 +243,49 @@ bool ALG::tryAssignOrderToDriver(int iTask, CDriver &driver, double &evaDiff, un
         n++;
         iTask = tasks[iTask].nextTask;
     }
-    _searchOptTime(driver, driver._available, driver._loc, 0, n, tids, sol, taskDoneMark, bestFTime, bestSol);
+    _searchwEva(driver, driver._available, driver._loc, 0, n, tids, sol, taskDoneMark, bestFTime, bestSol, 0);
     if (bestFTime<0 || bestFTime>driver.offTime) return false;
     evaDiff = -driver._eva + calEva(driver, n, bestSol);
     return true;
 }
 
+void ALG::_searchwEva(CDriver &driver, CTime curTime, int curLoc, int nFinished, int n,
+        int tids[], int sol[], bool taskDoneMark[], double &bestFTime, int bestSol[], double bestEva)
+{
+    if (nFinished == n) {
+        double eva = calEva(driver, n, sol);
+        if (bestFTime < 0) {
+            bestFTime = curTime;
+            bestEva = eva;
+            for (int i=0; i<nFinished; i++) bestSol[i] = sol[i];
+            return;
+        }
+        if (eva > bestEva) {
+            bestEva = eva;
+            for (int i=0; i<nFinished; i++) bestSol[i] = sol[i];
+        }
+        if (bestFTime > curTime) {
+            bestFTime = curTime;
+        }
+        return;
+    }
+    //prune
+    if (bestFTime >= 0 && curTime > bestFTime && nFinished < n/2)
+        return;
+    for (int j=nFinished; j<n; j++) {
+        int i = tids[j];
+        CTime arvTime = curTime + MOVING_TIME(curLoc,tasks[i].location,driver);
+        if (tasks[i].prevTask != NULL_ID && !taskDoneMark[tasks[i].prevTask])
+            continue; //its depend task hasn't finished
+        CTime nextTime = calNextAvailable(arvTime, tasks[i], driver);
+        sol[nFinished] = i;
+        tids[j] = tids[nFinished];
+        taskDoneMark[i] = true;
+        _searchwEva(driver, nextTime, tasks[i].location, nFinished+1, n, tids, sol, taskDoneMark, bestFTime, bestSol, bestEva);
+        taskDoneMark[i] = false;
+        tids[j] = i;
+    }
+}
 void ALG::_searchOptTime(CDriver &driver, CTime curTime, int curLoc, int nFinished, int n,
         int tids[], int sol[], bool taskDoneMark[], double &bestFTime, int bestSol[])
 {

@@ -168,6 +168,8 @@ private:
     static double calEva(CDriver &driver, unsigned int n, int tids[]);
     static void _searchOptTime(CDriver &driver, CTime curTime, int curLoc, int nFinished, int n,
         int tids[], int sol[], bool taskDoneMark[], double &bestFTime, int bestSol[]);
+    static void _searchwEva(CDriver &driver, CTime curTime, int curLoc, int nFinished, int n,
+        int tids[], int sol[], bool taskDoneMark[], double &bestFTime, int bestSol[], double bestEva);
 
 };
 #endif
