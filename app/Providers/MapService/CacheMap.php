@@ -172,6 +172,21 @@ class CacheMap{
             }
         }
     }
+    static public function near_patterns_agg($cells, $level) {
+        //assert($level < self::S2CELL_LEVEL);
+        $pats = [];
+        $neighbors = [[],[]];
+        for($i=0; $i<2; $i++) {
+            $cells[$i]->getVertexNeighbors($level, $neighbors[$i]);
+        }
+        foreach($neighbors[0] as $start) {
+            foreach($neighbors[1] as $end) {
+                $pat = self::cellsToToken([$start,$end], $level);
+                $pats[substr($pat, 0, -1)] = 1;
+            }
+        }
+        return array_keys($pats);
+    }
     static public function near_patterns($cells, $level) {
         //assert($level < self::S2CELL_LEVEL);
         $pats = [];
@@ -193,7 +208,7 @@ class CacheMap{
             foreach($row as $end_loc=>$elem) {
                 $cells = self::ExtLocToCells($start_loc, $end_loc);
                 $level = self::NEAR_LEVEL_MAX;
-                $pats = self::near_patterns($cells, $level);
+                $pats = self::near_patterns_agg($cells, $level);
                 foreach($pats as $pat) {
                     $agg_pats[$pat] = 1;
                 }
@@ -227,7 +242,7 @@ class CacheMap{
         $key_prefix = self::PREFIX . "pair:";
         $cells = self::ExtLocToCells($start_loc, $end_loc);
         for($level=self::NEAR_LEVEL_MAX; $level>=self::NEAR_LEVEL_MIN; $level--) {
-            $pats = self::near_patterns($cells, $level);
+            $pats = self::near_patterns_agg($cells, $level);
             $data = [];
             foreach($pats as $pat) {
                 $keys = Redis::keys($key_prefix.$pat.'*'); // this is limited by the pattern
