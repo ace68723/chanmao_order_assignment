@@ -10,7 +10,7 @@ class CacheMap{
     const PREFIX = "cmoa:map:";
     const KEEP_ALIVE_SEC = 3600*24;
     const DEG_PRECISION_FORMAT= "%.4f,%.4f";
-    const REDIS_BATCH_SIZE = 50; //TODO change to a larger one, this is for test
+    const REDIS_BATCH_SIZE = 1000;
     const S2CELL_LEVEL = 20;//must >= 14 <30; lvl 20 cell is about 10m*10m
     const NEAR_LEVEL_MAX = 14;
     const NEAR_LEVEL_MIN = 12;
@@ -273,7 +273,7 @@ class CacheMap{
                 $total_weight += $weight;
                 $total_ratio += $weight * $ratio;
         }
-        Log::debug(__FUNCTION__.": count:".json_encode($count));
+        //Log::debug(__FUNCTION__.": count:".json_encode($count));
         return (int)round($ll * ($found ? $total_ratio/$total_weight : $default_ratio));
     }
     static public function approx_mat($missed_pairs, &$dist_mat, $caseId) {
@@ -307,7 +307,7 @@ class CacheMap{
                 ];
             }
             if (!empty($data)) {
-                Log::debug(__FUNCTION__.":find ".count($data)." recs at level ".$level);
+                //Log::debug(__FUNCTION__.":find ".count($data)." recs at level ".$level);
                 return $data;
             }
         }
