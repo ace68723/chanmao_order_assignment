@@ -132,12 +132,19 @@ class MapService{
         return $ret;
     }
     private function dist_approx_from_cache($origin_loc_arr, $dest_loc_arr, $caseId) {
+        Log::debug(__FUNCTION__.':query '.(count($origin_loc_arr)*count($dest_loc_arr)).' items');
+        $timer['total'] = $timer['get_mat'] = -microtime(true);
         list($dist_mat, $missed_pairs) = CacheMap::get_mat($origin_loc_arr, $dest_loc_arr);
         CacheMap::extractCase($caseId, $dist_mat);
+        $timer['get_mat'] += microtime(true);
         if (empty($missed_pairs)) return [$dist_mat,$missed_pairs];
         //$sel_mat = CacheMap::query_near_batch($missed_pairs);
         //CacheMap::extractCase($caseId, $sel_mat);
+        $timer['approx_mat'] = -microtime(true);
         CacheMap::approx_mat($missed_pairs, $dist_mat, $caseId);
+        $timer['approx_mat'] += microtime(true);
+        $timer['total'] += microtime(true);
+        Log::debug(__FUNCTION__.':timers:'.json_encode($timer));
         return [$dist_mat,$missed_pairs];
     }
     private function verify(&$dist_mat, $missed, $caseId) {
