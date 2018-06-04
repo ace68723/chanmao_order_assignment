@@ -134,8 +134,7 @@ class CacheMap{
                 $isNew = self::accumlate($newitem['_s'],$elem[0],$curTime);
                 $shouldUpdate = $isNew;
                 if ($elem[1] != $newitem['_m']) {
-                    Log::debug('CacheMap::update2d:'.$start_loc.'-'.$end_loc.
-                        ':distance changed from '.$newitem['_m']. ' to '.$elem[1]);
+                    //Log::debug('CacheMap::update2d:'.$start_loc.'-'.$end_loc.':distance changed from '.$newitem['_m']. ' to '.$elem[1]);
                     $newitem['_m'] = $elem[1];
                     $shouldUpdate = true;
                 }
@@ -313,6 +312,12 @@ class CacheMap{
             }
         }
         return [];
+    }
+    static public function clear_old_mat() {
+        $key_prefix = self::PREFIX . "distMat:";
+        $keys = Redis::keys($key_prefix."*");
+        Log::debug("deleted ".count($keys));
+        Redis::del(...$keys);
     }
     /*
     static public function set_dist_mat($dist_mat) {

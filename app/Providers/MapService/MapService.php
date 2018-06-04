@@ -36,6 +36,8 @@ class MapService{
         return $ret;
     }
     public function test() {
+        CacheMap::clear_old_mat();
+        return;
         $items = CacheMap::scan_item();
         $count = []; $total_ratio = [];
         foreach(['cgst','norm','_s'] as $i) {
@@ -98,13 +100,19 @@ class MapService{
             $weekday = $dt->format('w');
             $isHoliday = ($weekday == '0' || $weekday == '6');
         }
-        if ($isHoliday) return 'norm';
-        $dt->setTime(16,30);
+        if ($isHoliday) return 'lv0';
+        $dt->setTime(16,0);
         $diff_sec = time() - $dt->getTimestamp();
-        if ($diff_sec >=0 && $diff_sec <= 7200) { //4:30pm ~ 6:30pm
-            return 'cgst';
+        if ($diff_sec >=0 && $diff_sec < 3600) { //4:00pm ~ 5:00pm
+            return 'lv1';
         }
-        return 'norm';
+        if ($diff_sec >=3600 && $diff_sec < 7200) { //5:00pm ~ 6:00pm
+            return 'lv2';
+        }
+        if ($diff_sec >=7200 && $diff_sec < 10800) { //6:00pm ~ 7:00pm
+            return 'lv1';
+        }
+        return 'lv0';
     }
     public function learn_map(&$loc_dict, $isHoliday=null) {
         $caseId = $this->get_caseId($isHoliday);
