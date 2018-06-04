@@ -129,6 +129,9 @@ class GoogleDistanceMatrix implements \JsonSerializable
         ];
         if (!empty($this->getAvoid()))
             $data['avoid'] = $this->getAvoid();
+        if ($data['mode']==self::MODE_DRIVING) {
+            $data['departure_time'] = time()+200; //start in the near future
+        }
         $parameters = http_build_query($data);
         $url = self::URL.'?'.$parameters;
 
