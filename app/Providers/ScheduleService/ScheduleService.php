@@ -270,14 +270,33 @@ class ScheduleService{
         }
         return ;
     }
+    private function find_unassigned($tasks) {
+        $oids = [];
+        foreach($tasks as $task) {
+            if (empty($task['driver_id'])) {
+                $oids[$task['oid']] = -1;
+            }
+        }
+        return $oids;
+    }
+    private function apply_new(&$oids, $schedules) {
+        foreach($schedules as $driver_id=>$sche) {
+            foreach($sche['tasks'] as $sche_task) if (isset($oids[$sche_task['oid']])) {
+                $oids[$sche_task['oid']] = $driver_id;
+            }
+        }
+    }
     public function run($areaId, $force_redo = false) {
         $timer['total'] = $timer['reload'] = -microtime(true);
         $input = $this->reload($areaId);
         $task_dict = $input['task_dict'];
         $driver_dict = $input['driver_dict'];
+        $unassigned_orders = $this->find_unassigned($tasks);
         $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         if (count($task_dict)==0 || count($driver_dict)==0) {
-            return $scheCache->get_schedules(null, $areaId);
+            $schedules = $scheCache->get_schedules(null, $areaId);
+            $this->apply_new($unassigned_orders, $schedules);
+            return [$schedules, $unassigned_orders];
         }
         $timer['reload'] += microtime(true);
         $uniCache = app()->make('cmoa_model_cache_service')->get('UniCache');
@@ -297,9 +316,10 @@ class ScheduleService{
             $uniCache->set('signScheInput', $new_input_sign);
         }
         $schedules = $scheCache->get_schedules(null, $areaId);
+        $this->apply_new($unassigned_orders, $schedules);
         $timer['total'] += microtime(true);
         Log::debug(__FUNCTION__.": timer:".json_encode($timer));
-        return $schedules;
+        return ['schedules'=>$schedules, 'new_order_assign'=>$unassigned_orders];
     }
     public function ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $curTasks) {
         foreach ($task_dict as $task_id=>$task) {
@@ -357,6 +377,7 @@ class ScheduleService{
                 foreach($sche['tids'] as $i=>$tid) {
                     $newTaskItem = [
                         'task_id'=>$task_arr[$tid]['task_id'],
+                        'oid'=>$task_arr[$tid]['oid'],
                         'completeTime'=>$sche['completeTime'][$i],
                         'locId'=>$task_arr[$tid]['locId'],
                     ];
