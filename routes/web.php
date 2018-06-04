@@ -18,14 +18,14 @@ $router->get('/', function () use ($router) {
 $router->group(['prefix'=>'api/v1/schedule', 'middleware'=>'auth:custom_token'], function ($router)
 {
     $api_names = [
-        'reload','run','get_dist_mat',
+        'reload','run',
     ];
     foreach($api_names as $api_name) {
         $router->post('/'.$api_name.'/', ['uses'=>'ScheduleController@'.$api_name]);
     }
     $api_names = [
         'get_drivers', 'get_orders', 'get_schedule', 'get_log', 'get_unicache',
-        'test_map', 'learn_map', 'get_map_caseId',
+        'test_map', 'learn_map', 'get_map_caseId', 'get_dist_mat',
     ];
     foreach($api_names as $api_name) {
         $router->post('/'.$api_name.'/', ['uses'=>'DebugController@'.$api_name]);

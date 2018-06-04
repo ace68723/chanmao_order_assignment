@@ -253,6 +253,7 @@ class ScheduleService{
         return md5($signStr);
     }
     public function learn_map($areaId) {
+        return;
         $input = $this->reload($areaId);
         $task_dict = $input['task_dict'];
         $driver_dict = $input['driver_dict'];

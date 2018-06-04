@@ -141,5 +141,11 @@ class DebugController extends Controller
         //$ret = $map_sp->get_dist_mat($loc_dict);
         return $this->format_success_ret($ret);
     }
+    public function get_dist_mat(Request $request) {
+        $loc_dict = $request->json()->all();
+        $map_sp = app()->make('cmoa_map_service');
+        $dist_mat = $map_sp->get_dist_mat($loc_dict);
+        return ['loc_dict'=>$loc_dict, 'dist_mat'=>$dist_mat];
+    }
 
 }
