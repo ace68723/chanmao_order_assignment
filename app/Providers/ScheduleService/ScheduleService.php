@@ -313,7 +313,9 @@ class ScheduleService{
             $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $curTasks);
             $timer['schedule'] += microtime(true);
             $scheCache->set_schedules($schedules, time());
-            $uniCache->set('interData', array_only($input, ['task_dict','driver_dict']));
+            $uniCache->set('interData', [
+                'loc_dict'=>$loc_dict, 'task_dict'=>$task_dict, 'driver_dict'=>$driver_dict,
+            ]);
             $uniCache->set('signScheInput', $new_input_sign);
         }
         $schedules = $scheCache->get_schedules(null, $areaId);

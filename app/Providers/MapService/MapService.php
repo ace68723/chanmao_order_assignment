@@ -107,6 +107,7 @@ class MapService{
         return 'norm';
     }
     public function learn_map(&$loc_dict, $isHoliday=null) {
+        return;
         $caseId = $this->get_caseId($isHoliday);
         list($grid_dict, $origin_loc_arr, $dest_loc_arr) = $this->aggregate_locs($loc_dict);
         list($cached_mat, $missed) = CacheMap::get_mat($origin_loc_arr, $dest_loc_arr);
@@ -123,7 +124,7 @@ class MapService{
         $caseId = $this->get_caseId($isHoliday);
         list($grid_dict, $origin_loc_arr, $dest_loc_arr) = $this->aggregate_locs($loc_dict);
         list($dist_mat, $missed) = $this->dist_approx_from_cache($origin_loc_arr, $dest_loc_arr, $caseId);
-        $this->verify($dist_mat,$missed,$caseId);
+        //$this->verify($dist_mat,$missed,$caseId);
         $ret = [];
         foreach ($origin_loc_arr as $i=>$start_loc)
             foreach ($origin_loc_arr as $j=>$end_loc) {

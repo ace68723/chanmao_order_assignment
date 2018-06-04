@@ -42,6 +42,7 @@ class GoogleMapProxy{
             foreach($end_loc_arr as $loc) {
                 $sp->addDestination($loc);
             }
+            $sp->setAvoid(GoogleDistanceMatrix::AVOID_TOLLS);
             $respObj = $sp->sendRequest();
             foreach($respObj->getRows() as $i=>$row) {
                 foreach($row->getElements() as $j=>$element) {
