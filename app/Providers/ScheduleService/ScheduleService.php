@@ -285,18 +285,19 @@ class ScheduleService{
                 $oids[$sche_task['oid']] = $driver_id;
             }
         }
+        Log::debug(__FUNCTION__.": unassgined to:".json_encode($oids));
     }
     public function run($areaId, $force_redo = false) {
         $timer['total'] = $timer['reload'] = -microtime(true);
         $input = $this->reload($areaId);
         $task_dict = $input['task_dict'];
         $driver_dict = $input['driver_dict'];
-        $unassigned_orders = $this->find_unassigned($tasks);
+        $unassigned_orders = $this->find_unassigned($task_dict);
         $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         if (count($task_dict)==0 || count($driver_dict)==0) {
             $schedules = $scheCache->get_schedules(null, $areaId);
             $this->apply_new($unassigned_orders, $schedules);
-            return [$schedules, $unassigned_orders];
+            return ['schedules'=>$schedules, 'new_order_assign'=>$unassigned_orders];
         }
         $timer['reload'] += microtime(true);
         $uniCache = app()->make('cmoa_model_cache_service')->get('UniCache');
