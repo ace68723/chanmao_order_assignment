@@ -94,16 +94,19 @@ class CacheMap{
         $pairs[] = ["43,-79", "43,-80"];
         //$pairs[] = ["43.001,-79", "43,-80.001"];
         $pairs[] = ["43.01,-79", "43,-80.01"];
-        foreach($pairs as $pair) {
-            self::update_mat([$pair[0]=>[$pair[1]=>[40,50]]]);
-            $ret[] = self::get_mat([$pair[0]],[$pair[1]]);
-        }
+        //foreach($pairs as $pair) {
+        $pair = $pairs[0];
+            self::update_mat([$pair[0]=>[$pair[1]=>[40,50]]],'lv2');
+            $mat = self::get_mat([$pair[0]],[$pair[1]]);
+            self::extractCase('lv4',$mat);
+            $ret[] = $mat;
+        //}
         foreach($pairs as $pair) {
             $cells = self::ExtLocToCells(...$pair);
             $tok = self::cellsToToken($cells);
             $rcells = self::tokenToCells($tok);
             $rLocs = self::CellsToExtLoc($rcells);
-            $ret[] = [$tok, $rLocs, $pats];
+            $ret[] = [$tok, $rLocs];
         }
         return $ret;
     }
