@@ -17,6 +17,7 @@ class CacheMap{
     const ACCU_MIN_INTER = 3600;
     const ACCU_MAX_INTER = 3600*24*7;
     const HEURISTIC_RATIO = 118.75;
+    const HEURISTIC_FACTOR = ['lv2'=>1.2, 'lv4'=>1.5];
 
     static public function ExtLocToCells($start_loc, $end_loc) {
         $cells = [];
@@ -38,7 +39,8 @@ class CacheMap{
     static public function extractCase($caseid, &$dist_mat) {
         foreach($dist_mat as $start_loc=>$row) {
             foreach($row as $end_loc=>$elem) {
-                $dist_mat[$start_loc][$end_loc] = $elem[$caseid][0] ?? $elem['_s'][0];
+                $dist_mat[$start_loc][$end_loc] = $elem[$caseid][0] ??
+                    (int)($elem['base'][0]*self::HEURISTIC_FACTOR[$caseId]);
             }
         }
     }
@@ -64,7 +66,7 @@ class CacheMap{
         }
         return [$dist_mat, $missing];
     }
-    static public function update_mat($dudi_mat, $caseid = null) {
+    static public function update_mat($dudi_mat, $caseid = 'base') {
         $key_prefix = self::PREFIX . "pair:";
         $curTime = time();
         $pairkeys = []; $idx = []; $missing = []; $dudis = [];
@@ -112,14 +114,19 @@ class CacheMap{
         }
         return $ret;
     }
-    static private function accumlate(&$tuple, $value, $curTime) {
+    static private function accumlate(&$tuple, $dudi, $curTime) {
         $ratio = 0.9;
-        if ($curTime - $tuple[1] < self::ACCU_MIN_INTER) return false;
-        if ($curTime - $tuple[1] > self::ACCU_MAX_INTER) $ratio = 0.5;
-        $tuple[0] *= $ratio;
-        $tuple[0] += (1-$ratio)*$value;
-        $tuple[0] = (int)($tuple[0]);
-        $tuple[1] = $curTime;
+        if ($tuple[2]>0 && $curTime - $tuple[2] < self::ACCU_MIN_INTER) return false;
+        if ($tuple[2]<=0) $ratio = 0;
+        if ($curTime - $tuple[2] > self::ACCU_MAX_INTER) $ratio = 0.5;
+        for($i=0; $i<2; $i++) {
+            if ($tuple[$i] != $dudi[$i]) {
+                $tuple[$i] *= $ratio;
+                $tuple[$i] += (1-$ratio)*$dudi[$i];
+                $tuple[$i] = (int)($tuple[$i]);
+            }
+        }
+        $tuple[2] = $curTime;
         return true;
     }
     static private function update2d($keys, $idx, $dudis, $caseId) {
@@ -131,28 +138,23 @@ class CacheMap{
             $end_loc = $idx[$i][1];
             if (isset($olddata[$start_loc][$end_loc])) {
                 $newitem = $olddata[$start_loc][$end_loc];
-                $isNew = self::accumlate($newitem['_s'],$elem[0],$curTime);
-                $shouldUpdate = $isNew;
-                if ($elem[1] != $newitem['_m']) {
-                    //Log::debug('CacheMap::update2d:'.$start_loc.'-'.$end_loc.':distance changed from '.$newitem['_m']. ' to '.$elem[1]);
-                    $newitem['_m'] = $elem[1];
+                if (empty($newitem[$caseId])) {
+                    $newitem[$caseId] = [$elem[0], $elem[1], $curTime];
                     $shouldUpdate = true;
                 }
-                if (!empty($caseId)) {
-                    if (empty($newitem[$caseId])) {
-                        $newitem[$caseId] = [$elem[0],$curTime];
-                        $shouldUpdate = true;
-                    }
-                    else {
-                        $isNew = self::accumlate($newitem[$caseId],$elem[0],$curTime);
-                        $shouldUpdate = $shouldUpdate || $isNew;
-                    }
+                else {
+                    $shouldUpdate = self::accumlate($newitem[$caseId],$elem,$curTime);
                 }
                 if (!$shouldUpdate) continue;
             }
             else {
-                $newitem = ['_m'=>$elem[1],'_s'=>[$elem[0],$curTime]];
-                if (!empty($caseId)) $newitem[$caseId] = [$elem[0],$curTime];
+                $newitem[$caseId] = [$elem[0],$elem[1],$curTime];
+                if ($caseId != 'base') {
+                    $newitem['base'] = [
+                        (int)($elem[0]*1.0/self::HEURISTIC_FACTOR[$caseId]),
+                        $elem[1],-1
+                    ];
+                }
             }
             $newdata[] = $keys[$i];
             $newdata[] = json_encode($newitem);
@@ -250,9 +252,9 @@ class CacheMap{
         }
         return [$dists, $cell_dict]; //$dists may be shorter than $cell_dict
     }
-    static public function weighted_approx($cell_pair, $ref_data,
-        $default_ratio=self::HEURISTIC_RATIO, $max_range_km=2.4)
+    static public function weighted_approx($cell_pair, $ref_data, $caseId, $max_range_km=2.4)
     {
+        $default_ratio = self::HEURISTIC_RATIO*(self::HEURISTIC_FACTOR[$caseId] ?? 1);
         $total_weight = 0;
         $total_ratio = 0;
         $ll = self::dist_km($cell_pair[0], $cell_pair[1]);
@@ -261,7 +263,8 @@ class CacheMap{
         foreach ($ref_data as $ref_item) {
                 $count['nBase'] += 1;
                 $l2_dist = self::dist_km($ref_item['cells'][0],$ref_item['cells'][1]);
-                $ratio = $ref_item['v']/$l2_dist;
+                $value = $ref_item['elem'][$caseId] ?? $ref_item['elem']['base']*self::HEURISTIC_FACTOR[$caseId];
+                $ratio = $value/$l2_dist;
                 $expw = $ref_item['sum_diff_dist'];
                 if (-$expw > $max_range_km) {
                     $count['nFar'] += 1;
@@ -280,12 +283,12 @@ class CacheMap{
         foreach ($missed_pairs as $start_loc=>$missed_rows) {
             foreach ($missed_rows as $end_loc=>$missed_elem) {
                 $cell_pair = self::ExtLocToCells($start_loc, $end_loc);
-                $ref_data = self::query_near($cell_pair, $caseId);
-                $dist_mat[$start_loc][$end_loc] = self::weighted_approx($cell_pair, $ref_data);
+                $ref_data = self::query_near($cell_pair);
+                $dist_mat[$start_loc][$end_loc] = self::weighted_approx($cell_pair, $ref_data, $caseId);
             }
         }
     }
-    static private function query_near($cell_pair, $caseId, $nFirst=5) {
+    static private function query_near($cell_pair, $nFirst=5) {
         $key_prefix = self::PREFIX . "pair:";
         for($level=self::NEAR_LEVEL_MAX; $level>=self::NEAR_LEVEL_MIN; $level--) {
             $pats = self::near_patterns_agg($cell_pair, $level);
@@ -301,7 +304,7 @@ class CacheMap{
             foreach($values as $i=>$value) if (!empty($value)){
                 $elem = json_decode($value, true);
                 $data[] = [
-                    'v'=>($elem[$caseId][0] ?? $elem['_s'][0]),
+                    'elem'=>$elem,
                     'sum_diff_dist'=> $dists[$keys[$i]],
                     'cells'=> $cell_dict[$keys[$i]],
                 ];
@@ -314,50 +317,18 @@ class CacheMap{
         return [];
     }
     static public function clear_old_mat() {
-        $key_prefix = self::PREFIX . "distMat:";
-        $keys = Redis::keys($key_prefix."*");
-        Log::debug("deleted ".count($keys));
-        Redis::del(...$keys);
-    }
-    /*
-    static public function set_dist_mat($dist_mat) {
-        $key_prefix = self::PREFIX . "distMat:";
-        $curTime = time();
-        foreach ($dist_mat as $start_loc=>$rows) {
-            $arr = [$key_prefix.$start_loc];
-            foreach($rows as $end_loc=>$elem) {
-                $arr[] = $end_loc;
-                $arr[] = json_encode(['timestamp'=>$curTime, 'du'=>$elem[0], 'di'=>$elem[1]]);
-            }
-            Redis::hmset(...$arr);
-        }
-    }
-    static public function get_dist_mat($origin_loc_arr, $end_loc_arr) {
-        $dist_mat = [];
-        if (empty($origin_loc_arr) || empty($end_loc_arr)) return $dist_mat;
-        $curTime = time();
-        $key_prefix = self::PREFIX . "distMat:";
         $n = 0;
-        foreach ($origin_loc_arr as $start_loc) {
-            $arr = [$key_prefix.$start_loc];
-            foreach($end_loc_arr as $end_loc) {
-                $arr[] = $end_loc;
-            }
-            $ret = Redis::hmget(...$arr);
-            foreach ($end_loc_arr as $i=>$end_loc) {
-                if (is_null($ret[$i])) continue;
-                $cached = json_decode($ret[$i],true);
-                if ($curTime - $cached['timestamp'] > self::KEEP_ALIVE_SEC) {
-                    continue;
-                }
-                $dist_mat[$start_loc][$end_loc] = [$cached['du'],$cached['di']];
-                $n++;
-            }
+        foreach(self::scan_item() as $item_arr) {
+            list($key, $item) = $item_arr;
+            $item['base'] = [$item['_s'][0], $item['_m'], $item['_s'][1]];
+            unset($item['_m']);
+            unset($item['_s']);
+            unset($item['norm']);
+            unset($item['cgst']);
+            Redis::set($key,json_encode($item));
         }
-        Log::debug(__FUNCTION__.":read $n cached items:");
-        return $dist_mat;
+        Log::debug("reformat $n recs.");
     }
-     */
     static public function scan($pattern='*') {
         $key_pat = self::PREFIX."pair:".$pattern;
         $prefixlen = strlen(self::PREFIX."pair:");
@@ -377,8 +348,8 @@ class CacheMap{
             list($cursor, $keys) = Redis::scan($cursor, 'match', $key_pat, 'count', 200);
             if (empty($keys)) break;
             $items = Redis::mget(...$keys);
-            foreach ($items as $item) {
-                yield json_decode($item, true);
+            foreach ($items as $i=>$item) {
+                yield [$keys[$i], json_decode($item, true)];
             }
         } while ($cursor);
     }

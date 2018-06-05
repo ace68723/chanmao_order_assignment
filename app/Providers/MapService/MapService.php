@@ -38,28 +38,6 @@ class MapService{
     public function test() {
         CacheMap::clear_old_mat();
         return;
-        $items = CacheMap::scan_item();
-        $count = []; $total_ratio = [];
-        foreach(['cgst','norm','_s'] as $i) {
-            $count[$i] = 0;
-            $total_ratio[$i] = 0;
-        }
-        $last = null;
-        foreach($items as $rec) {
-            foreach(['cgst','norm'] as $caseId) if (!empty($rec[$caseId])) {
-                $count[$caseId] += 1;
-                $total_ratio[$caseId] += $rec[$caseId][0]*1.0/$rec['_m'];
-            }
-            $count['_s'] += 1;
-            $total_ratio['_s'] += $rec['_s'][0]*1.0/$rec['_m'];
-            $last = $rec;
-        }
-        foreach(['cgst','norm','_s'] as $i) {
-            if ($count[$i]>0) {
-                $total_ratio[$i] /= $count[$i];
-            }
-        }
-        return [$count, $total_ratio, $last];
     }
     private function aggregate_locs(&$loc_dict) {
         $grid_dict = [];
@@ -100,19 +78,19 @@ class MapService{
             $weekday = $dt->format('w');
             $isHoliday = ($weekday == '0' || $weekday == '6');
         }
-        if ($isHoliday) return 'lv0';
+        if ($isHoliday) return 'base';
         $dt->setTime(16,0);
         $diff_sec = time() - $dt->getTimestamp();
         if ($diff_sec >=0 && $diff_sec < 3600) { //4:00pm ~ 5:00pm
-            return 'lv1';
-        }
-        if ($diff_sec >=3600 && $diff_sec < 7200) { //5:00pm ~ 6:00pm
             return 'lv2';
         }
-        if ($diff_sec >=7200 && $diff_sec < 10800) { //6:00pm ~ 7:00pm
-            return 'lv1';
+        if ($diff_sec >=3600 && $diff_sec < 7200) { //5:00pm ~ 6:00pm
+            return 'lv4';
         }
-        return 'lv0';
+        if ($diff_sec >=7200 && $diff_sec < 10800) { //6:00pm ~ 7:00pm
+            return 'lv2';
+        }
+        return 'base';
     }
     public function learn_map(&$loc_dict, $isHoliday=null) {
         $caseId = $this->get_caseId($isHoliday);
