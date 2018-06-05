@@ -36,10 +36,10 @@ class CacheMap{
         }
         return $ret;
     }
-    static public function extractCase($caseid, &$dist_mat) {
+    static public function extractCase($caseId, &$dist_mat) {
         foreach($dist_mat as $start_loc=>$row) {
             foreach($row as $end_loc=>$elem) {
-                $dist_mat[$start_loc][$end_loc] = $elem[$caseid][0] ??
+                $dist_mat[$start_loc][$end_loc] = $elem[$caseId][0] ??
                     (int)($elem['base'][0]*self::HEURISTIC_FACTOR[$caseId]);
             }
         }
@@ -97,7 +97,7 @@ class CacheMap{
         //foreach($pairs as $pair) {
         $pair = $pairs[0];
             self::update_mat([$pair[0]=>[$pair[1]=>[40,50]]],'lv2');
-            $mat = self::get_mat([$pair[0]],[$pair[1]]);
+            list($mat, $missing) = self::get_mat([$pair[0]],[$pair[1]]);
             self::extractCase('lv4',$mat);
             $ret[] = $mat;
         //}
