@@ -36,8 +36,7 @@ class MapService{
         return $ret;
     }
     public function test() {
-        CacheMap::test();
-        return;
+        return CacheMap::test();
     }
     private function aggregate_locs(&$loc_dict) {
         $grid_dict = [];
