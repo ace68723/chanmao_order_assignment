@@ -36,7 +36,7 @@ class MapService{
         return $ret;
     }
     public function test() {
-        CacheMap::clear_old_mat();
+        CacheMap::test();
         return;
     }
     private function aggregate_locs(&$loc_dict) {

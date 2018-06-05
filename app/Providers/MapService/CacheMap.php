@@ -92,24 +92,17 @@ class CacheMap{
         $ret = [];
         $pairs = [];
         $pairs[] = ["43,-79", "43,-80"];
-        foreach($pairs as $pair) {
-            self::update_mat([$pair[0]=>[$pair[1]=>[10,20]]]);
-            $ret[] = self::get_mat([$pair[0]],[$pair[1]]);
-        }
-        //$pairs[] = ["43.0001,-79", "43,-80.0001"];
         //$pairs[] = ["43.001,-79", "43,-80.001"];
         $pairs[] = ["43.01,-79", "43,-80.01"];
         foreach($pairs as $pair) {
             self::update_mat([$pair[0]=>[$pair[1]=>[40,50]]]);
             $ret[] = self::get_mat([$pair[0]],[$pair[1]]);
-            $ret[] = self::query_near($pair[0],$pair[1]);
         }
         foreach($pairs as $pair) {
             $cells = self::ExtLocToCells(...$pair);
             $tok = self::cellsToToken($cells);
             $rcells = self::tokenToCells($tok);
             $rLocs = self::CellsToExtLoc($rcells);
-            $pats = self::near_patterns($cells, 12);
             $ret[] = [$tok, $rLocs, $pats];
         }
         return $ret;
@@ -315,19 +308,6 @@ class CacheMap{
             }
         }
         return [];
-    }
-    static public function clear_old_mat() {
-        $n = 0;
-        foreach(self::scan_item() as $item_arr) {
-            list($key, $item) = $item_arr;
-            $item['base'] = [$item['_s'][0], $item['_m'], $item['_s'][1]];
-            unset($item['_m']);
-            unset($item['_s']);
-            unset($item['norm']);
-            unset($item['cgst']);
-            Redis::set($key,json_encode($item));
-        }
-        Log::debug("reformat $n recs.");
     }
     static public function scan($pattern='*') {
         $key_pat = self::PREFIX."pair:".$pattern;
