@@ -272,11 +272,11 @@ class CacheMap{
                 }
                 $weight = exp($expw/$max_range_km);//100 is heuristic mean for 200*200 grid
                 $found = true;
-                Log::debug(__FUNCTION__.":".self::cellsToToken($ref_item['cells'])." weight:".$weight." ratio:".$ratio);
+                //Log::debug(__FUNCTION__.":".self::cellsToToken($ref_item['cells'])." weight:".$weight." ratio:".$ratio);
                 $total_weight += $weight;
                 $total_ratio += $weight * $ratio;
         }
-        Log::debug(__FUNCTION__.":".self::cellsToToken($cell_pair)." count:".json_encode($count));
+        //Log::debug(__FUNCTION__.":".self::cellsToToken($cell_pair)." count:".json_encode($count));
         return (int)round($ll * ($found ? $total_ratio/$total_weight : $default_ratio));
     }
     static public function approx_mat($missed_pairs, &$dist_mat, $caseId) {
