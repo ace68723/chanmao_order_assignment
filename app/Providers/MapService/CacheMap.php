@@ -263,7 +263,7 @@ class CacheMap{
         foreach ($ref_data as $ref_item) {
                 $count['nBase'] += 1;
                 $l2_dist = self::dist_km($ref_item['cells'][0],$ref_item['cells'][1]);
-                $value = $ref_item['elem'][$caseId] ?? $ref_item['elem']['base']*self::HEURISTIC_FACTOR[$caseId];
+                $value = $ref_item['elem'][$caseId][0] ?? $ref_item['elem']['base'][0]*self::HEURISTIC_FACTOR[$caseId];
                 $ratio = $value/$l2_dist;
                 $expw = $ref_item['sum_diff_dist'];
                 if (-$expw > $max_range_km) {
