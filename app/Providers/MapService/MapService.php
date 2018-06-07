@@ -42,7 +42,7 @@ class MapService{
      * [in] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str}]
      * [out] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str, 'gridId':str, 'idx':int, 'adjustLatLng':string}]
      */
-    private function aggregate_locs(&$loc_dict) {
+    public function aggregate_locs(&$loc_dict) {
         $grid_dict = [];
         foreach($loc_dict as $k=>$loc) {
             $grid_idx_arr = self::toGridIdx([$loc['lat'], $loc['lng']]);

@@ -144,10 +144,11 @@ class DebugController extends Controller
         $task_dict = $input['task_dict'] ?? null;
         $driver_dict = $input['driver_dict'] ?? null;
         $sch_sp = app()->make('cmoa_schedule_service');
-        $map_sp = app()->make('cmoa_map_service');
-        list($origin_loc_arr, $dest_loc_arr) = $map_sp->aggregate_locs($loc_dict);
-        $target = $sch_sp->get_target_dist_mat($origin_loc_arr, $dest_loc_arr, $loc_dict, $task_dict, $driver_dict);
-        return $target;
+        //$map_sp = app()->make('cmoa_map_service');
+        //list($origin_loc_arr, $dest_loc_arr) = $map_sp->aggregate_locs($loc_dict);
+        //$target = $sch_sp->get_target_dist_mat($origin_loc_arr, $dest_loc_arr, $loc_dict, $task_dict, $driver_dict);
+        $dist_mat = $sch_sp->get_dist_mat($loc_dict, $task_dict, $driver_dict);
+        return $dist_mat;
     }
 
 }
