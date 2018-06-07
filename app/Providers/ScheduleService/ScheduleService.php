@@ -24,6 +24,7 @@ class ScheduleService{
         $this->consts['PENALTY_ONETIME'] = ['D'=>0,'P'=>0]; //maybe deprecate this
         $this->consts['PENALTY_PERSEC'] = ['D'=>0.11,'P'=>0.001];
         $this->consts['DRIVER_LIVE_SEC'] = 4*3600; //for how long the driver's location stays usable
+        $this->consts['DRIVER_ADVANCE_SEC'] = 60*15; //consider driver available before its scheduled time
         $this->consts['PPTIME'] = [
             'default'=>60*20,
             '< 10' => 60*10,
@@ -122,7 +123,9 @@ class ScheduleService{
                 Log::debug("ignore driver ".$driver['driver_id']." because of lost position");
                 continue;
             }
-            if ($curTime >= $driver['valid_to'] || $curTime <$driver['valid_from']) {
+            if ($curTime >= $driver['valid_to']
+                || $curTime < $driver['valid_from']-$this->consts['DRIVER_ADVANCE_SEC'])
+            {
                 Log::debug("ignore driver ".$driver['driver_id']." because of off work");
                 continue;
             }
@@ -253,6 +256,7 @@ class ScheduleService{
         return md5($signStr);
     }
     public function learn_map($areaId) {
+        return;
         $input = $this->reload($areaId);
         $task_dict = $input['task_dict'];
         $driver_dict = $input['driver_dict'];
@@ -285,7 +289,11 @@ class ScheduleService{
                 $oids[$sche_task['oid']] = $driver_id;
             }
         }
-        Log::debug(__FUNCTION__.": unassgined to:".json_encode($oids));
+        Log::debug(__FUNCTION__.": new_orders:".json_encode($oids));
+    }
+    private function split_get_dist_mat(&$loc_dict, $curTasks) {
+        $dist_mat = $map_sp->get_dist_mat($loc_dict);
+        return $dist_mat;
     }
     public function run($areaId, $force_redo = false) {
         $timer['total'] = $timer['reload'] = -microtime(true);
@@ -307,7 +315,7 @@ class ScheduleService{
             $map_sp = app()->make('cmoa_map_service');
             $curTasks = $input['curTasks'];
             $loc_dict = $input['basic_loc_dict']; //will be enriched in the get_dist_mat call
-            $dist_mat = $map_sp->get_dist_mat($loc_dict);
+            $dist_mat = $this->split_get_dist_mat($loc_dict);
             $timer['map'] += microtime(true);
             $timer['schedule'] = -microtime(true);
             $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $curTasks);
@@ -359,7 +367,7 @@ class ScheduleService{
             'nLocations'=>$nLocations,
         ];
         $logCache = app()->make('cmoa_model_cache_service')->get('LogCache');
-        $logCache->log('cmoa_ext_input', $input);
+        $logCache->log('cmoa_ext_input', ['input'=>$input,'loc_dict'=>$loc_dict]);
         $ret = cmoa_schedule($input);
         $logCache->log('cmoa_ext_output', $ret);
         if ($ret['ev_error'] != 0) {

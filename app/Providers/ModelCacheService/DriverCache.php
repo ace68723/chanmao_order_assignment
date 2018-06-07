@@ -68,8 +68,7 @@ class DriverCache{
         foreach($rets as $rows) if (!is_null($rows)) {
             $drivers[] = json_decode($rows, true);
         }
-        Log::debug("read ".count($drivers)." drivers for area $area:".
-            json_encode(array_pluck($drivers,'driver_id')));
+        //Log::debug("read ".count($drivers)." drivers for area $area:".json_encode(array_pluck($drivers,'driver_id')));
         return $drivers;
     }
 }
