@@ -336,7 +336,7 @@ class ScheduleService{
         return $target_mat;
     }
     public function run($areaId, $force_redo = false) {
-        return ['schedules'=>[], 'new_order_assign'=>[]];
+        //return ['schedules'=>[], 'new_order_assign'=>[]];
         $timer['total'] = $timer['reload'] = -microtime(true);
         $input = $this->reload($areaId);
         $task_dict = $input['task_dict'];
