@@ -130,6 +130,7 @@ class MapService{
         $errors = [];
         foreach($sel_mat as $start_loc=>$row) {
             foreach($row as $end_loc=>$elem) {
+                if (!isset($dist_mat[$start_loc][$end_loc])) continue;
                 $estm = $dist_mat[$start_loc][$end_loc];
                 $real = $elem[0];
                 if ($real == 0) {
