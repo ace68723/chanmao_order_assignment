@@ -44,14 +44,14 @@ class CacheMap{
             }
         }
     }
-    static public function get_mat($origin_loc_arr, $end_loc_arr) {
+    static public function get_mat($target_mat) {
         $key_prefix = self::PREFIX . "pair:";
-        $dist_mat = [];
-        if (empty($origin_loc_arr) || empty($end_loc_arr)) return $dist_mat;
-        $pairkeys = []; $idx = []; $missing = [];
-        foreach($origin_loc_arr as $start_loc) {
-            foreach($end_loc_arr as $end_loc) {
-                if ($start_loc == $end_loc) continue;
+        $nQuery = 0;
+        $pairkeys = []; $idx = []; $missing = []; $dist_mat = [];
+        foreach($target_mat as $start_loc=>$row) {
+            foreach($row as $end_loc=>$elem) {
+                if ($elem < 0) continue;
+                $nQuery += 1;
                 $cells = self::ExtLocToCells($start_loc, $end_loc);
                 $pairkeys[] = $key_prefix.self::cellsToToken($cells);
                 $idx[] = [$start_loc, $end_loc];
@@ -64,6 +64,7 @@ class CacheMap{
         if (count($pairkeys)) {
             self::mget2d($pairkeys,$idx,$dist_mat,$missing);
         }
+        Log::debug(__FUNCTION__.':query '.$nQuery.' elems');
         return [$dist_mat, $missing];
     }
     static public function update_mat($dudi_mat, $caseid = 'base') {
@@ -96,10 +97,11 @@ class CacheMap{
         $pairs[] = ["43.01,-79", "43,-80.01"];
         //foreach($pairs as $pair) {
         $pair = $pairs[0];
-            self::update_mat([$pair[0]=>[$pair[1]=>[40,50]]],'lv2');
-            list($mat, $missing) = self::get_mat([$pair[0]],[$pair[1]]);
-            self::extractCase('lv4',$mat);
-            $ret[] = $mat;
+        self::update_mat([$pair[0]=>[$pair[1]=>[40,50]]],'lv2');
+        $target_mat = [$pair[0]=>[$pair[1]=>0]];
+        list($mat, $missing) = self::get_mat($target_mat);
+        self::extractCase('lv4',$mat);
+        $ret[] = $mat;
         //}
         foreach($pairs as $pair) {
             $cells = self::ExtLocToCells(...$pair);

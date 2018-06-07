@@ -38,6 +38,10 @@ class MapService{
     public function test() {
         return CacheMap::test();
     }
+    /*
+     * [in] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str}]
+     * [out] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str, 'gridId':str, 'idx':int, 'adjustLatLng':string}]
+     */
     private function aggregate_locs(&$loc_dict) {
         $grid_dict = [];
         foreach($loc_dict as $k=>$loc) {
@@ -68,7 +72,7 @@ class MapService{
             $loc_dict[$k]['idx'] = $grid_dict[$v['gridId']]['idx']?? -1;
         }
         Log::debug("len(origin):".count($origin_loc_arr)." len(dest):".count($dest_loc_arr));
-        return [$grid_dict, $origin_loc_arr, $dest_loc_arr];
+        return [$origin_loc_arr, $dest_loc_arr];
     }
 
     public function get_caseId($isHoliday=null) {
@@ -91,40 +95,27 @@ class MapService{
         }
         return 'base';
     }
-    public function learn_map(&$loc_dict, $isHoliday=null) {
+    public function learn_map($target_mat) {
+        $isHoliday=null;
         $caseId = $this->get_caseId($isHoliday);
-        list($grid_dict, $origin_loc_arr, $dest_loc_arr) = $this->aggregate_locs($loc_dict);
-        list($cached_mat, $missed) = CacheMap::get_mat($origin_loc_arr, $dest_loc_arr);
+        list($dist_mat, $missed) = CacheMap::get_mat($target_mat);
         list($sel_origins, $sel_dests) = $this->approx_select($missed);
         $sel_mat = GoogleMapProxy::get_gm_mat($sel_origins, $sel_dests);
         CacheMap::update_mat($sel_mat, $caseId);
     }
-    /*
-     * [in] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str}]
-     * [out] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str, 'gridId':str, 'idx':int, 'adjustLatLng':string}]
-     * return $dist_mat: 2-D double
-     */
-    public function get_dist_mat(&$loc_dict, $isHoliday=null) {
+    public function get_dist_mat($target_mat) {
+        $isHoliday=null;
         $caseId = $this->get_caseId($isHoliday);
-        list($grid_dict, $origin_loc_arr, $dest_loc_arr) = $this->aggregate_locs($loc_dict);
-        list($dist_mat, $missed) = $this->dist_approx_from_cache($origin_loc_arr, $dest_loc_arr, $caseId);
-        //$this->verify($dist_mat,$missed,$caseId);
-        $ret = [];
-        foreach ($origin_loc_arr as $i=>$start_loc)
-            foreach ($origin_loc_arr as $j=>$end_loc) {
-                $ret[$i][$j] = $dist_mat[$start_loc][$end_loc] ?? -1;
-            }
-        return $ret;
+        list($dist_mat, $missed) = $this->dist_approx_from_cache($target_mat, $caseId);
+        $this->verify($dist_mat,$missed,$caseId);
+        return $dist_mat;
     }
-    private function dist_approx_from_cache($origin_loc_arr, $dest_loc_arr, $caseId) {
-        Log::debug(__FUNCTION__.':query '.(count($origin_loc_arr)*count($dest_loc_arr)).' items');
+    private function dist_approx_from_cache($target_mat, $caseId) {
         $timer['total'] = $timer['get_mat'] = -microtime(true);
-        list($dist_mat, $missed_pairs) = CacheMap::get_mat($origin_loc_arr, $dest_loc_arr);
+        list($dist_mat, $missed_pairs) = CacheMap::get_mat($target_mat);
         CacheMap::extractCase($caseId, $dist_mat);
         $timer['get_mat'] += microtime(true);
         if (empty($missed_pairs)) return [$dist_mat,$missed_pairs];
-        //$sel_mat = CacheMap::query_near_batch($missed_pairs);
-        //CacheMap::extractCase($caseId, $sel_mat);
         $timer['approx_mat'] = -microtime(true);
         CacheMap::approx_mat($missed_pairs, $dist_mat, $caseId);
         $timer['approx_mat'] += microtime(true);

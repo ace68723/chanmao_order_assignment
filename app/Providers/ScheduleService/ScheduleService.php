@@ -269,10 +269,14 @@ class ScheduleService{
             $map_sp = app()->make('cmoa_map_service');
             $curTasks = $input['curTasks'];
             $loc_dict = $input['basic_loc_dict']; //will be enriched
-            $dist_mat = $map_sp->learn_map($loc_dict);
+            list($origin_loc_arr, $dest_loc_arr) = $map_sp->aggregate_locs($loc_dict);
+            foreach($origin_loc_arr as $start_loc)
+                foreach($dest_loc_arr as $end_loc)
+                    $target_mat[$start_loc][$end_loc] = 1;
+            $map_sp->learn_map($target_mat);
             $uniCache->set('signLearnMapInput', $new_input_sign);
         }
-        return ;
+        return;
     }
     private function find_unassigned($tasks) {
         $oids = [];
@@ -291,11 +295,48 @@ class ScheduleService{
         }
         Log::debug(__FUNCTION__.": new_orders:".json_encode($oids));
     }
-    private function split_get_dist_mat(&$loc_dict, $curTasks) {
-        $dist_mat = $map_sp->get_dist_mat($loc_dict);
+    public function get_dist_mat(&$loc_dict, $task_dict, $driver_dict) {
+        $map_sp = app()->make('cmoa_map_service');
+        list($origin_loc_arr, $dest_loc_arr) = $map_sp->aggregate_locs($loc_dict);
+        $target_mat = $this->get_target_dist_mat($origin_loc_arr, $dest_loc_arr,
+            $loc_dict, $task_dict, $driver_dict);
+        $dist_mat_dict = $map_sp->get_dist_mat($target_mat);
+        $dist_mat = [];
+        foreach ($origin_loc_arr as $i=>$start_loc)
+            foreach ($origin_loc_arr as $j=>$end_loc) {
+                $dist_mat[$i][$j] = $dist_mat_dict[$start_loc][$end_loc] ?? -1;
+            }
         return $dist_mat;
     }
+    public function get_target_dist_mat($origin_loc_arr, $dest_loc_arr, $loc_dict, $task_dict, $driver_dict) {
+        foreach ($driver_dict as $driver_id=>$driver) {
+            $loc_idxs = [];
+            $start_idx = $loc_dict[$driver['locId']]['idx'];
+            foreach ($task_dict as $task_id=>$task) {
+                if (empty($task['driver_id']) || $task['driver_id'] == $driver_id) {
+                    $end_idx = $loc_dict[$task['locId']]['idx'];
+                    $loc_idxs[$end_idx] = 1;
+                    if ($start_idx != $end_idx) {
+                        $start_loc = $origin_loc_arr[$start_idx];
+                        $end_loc = $origin_loc_arr[$end_idx];
+                        $target_mat[$start_loc][$end_loc] = 1;
+                    }
+                }
+            }
+            foreach ($loc_idxs as $start_idx=>$elem1) {
+                foreach ($loc_idxs as $end_idx=>$elem2) {
+                    if ($start_idx != $end_idx) {
+                        $start_loc = $origin_loc_arr[$start_idx];
+                        $end_loc = $origin_loc_arr[$end_idx];
+                        $target_mat[$start_loc][$end_loc] = 1;
+                    }
+                }
+            }
+        }
+        return $target_mat;
+    }
     public function run($areaId, $force_redo = false) {
+        return ['schedules'=>[], 'new_order_assign'=>[]];
         $timer['total'] = $timer['reload'] = -microtime(true);
         $input = $this->reload($areaId);
         $task_dict = $input['task_dict'];
@@ -312,10 +353,9 @@ class ScheduleService{
         $new_input_sign = $this->calc_input_sign($input);
         if ($force_redo || $uniCache->get('signScheInput') != $new_input_sign) {
             $timer['map'] = -microtime(true);
-            $map_sp = app()->make('cmoa_map_service');
             $curTasks = $input['curTasks'];
             $loc_dict = $input['basic_loc_dict']; //will be enriched in the get_dist_mat call
-            $dist_mat = $this->split_get_dist_mat($loc_dict);
+            $dist_mat = $this->get_dist_mat($loc_dict, $task_dict, $driver_dict);
             $timer['map'] += microtime(true);
             $timer['schedule'] = -microtime(true);
             $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $curTasks);

@@ -136,16 +136,18 @@ class DebugController extends Controller
         $prec = 0.00001;
         //$ret = S2CellId::fromLatLng(S2LatLng::fromDegrees(45.234, -79.1111));
         //$ret = (new S2CellId(5560388600765437049))->toLatLng()->toStringDegrees();
-        //$loc_dict = $request->json()->all()['locations'];
-        //$map_sp = app()->make('cmoa_map_service');
-        //$ret = $map_sp->get_dist_mat($loc_dict);
         return $this->format_success_ret($ret);
     }
     public function get_dist_mat(Request $request) {
-        $loc_dict = $request->json()->all();
+        $input = $request->json()->all();
+        $loc_dict = $input['loc_dict'];
+        $task_dict = $input['task_dict'] ?? null;
+        $driver_dict = $input['driver_dict'] ?? null;
+        $sch_sp = app()->make('cmoa_schedule_service');
         $map_sp = app()->make('cmoa_map_service');
-        $dist_mat = $map_sp->get_dist_mat($loc_dict);
-        return ['loc_dict'=>$loc_dict, 'dist_mat'=>$dist_mat];
+        list($origin_loc_arr, $dest_loc_arr) = $map_sp->aggregate_locs($loc_dict);
+        $target = $sch_sp->get_target_dist_mat($origin_loc_arr, $dest_loc_arr, $loc_dict, $task_dict, $driver_dict);
+        return $target;
     }
 
 }
