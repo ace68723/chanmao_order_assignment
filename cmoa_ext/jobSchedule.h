@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-extern char* version;
+extern const char* version;
 using std::string;
 using std::vector;
 #define MAXNORDER 5

@@ -90,6 +90,7 @@ class CacheMap{
         }
     }
     static public function test() {
+        return self::calc_ratio();
         $ret = [];
         $pairs = [];
         $pairs[] = ["43,-79", "43,-80"];
@@ -341,6 +342,25 @@ class CacheMap{
                 yield [$keys[$i], json_decode($item, true)];
             }
         } while ($cursor);
+    }
+    static public function calc_ratio() {
+        $all_item = self::scan_item();
+        $total_ratio = ['lv2'=>0, 'lv4'=>0];
+        $total_count = ['lv2'=>0, 'lv4'=>0];
+        $n = 0;
+        foreach($all_item as $keyitem) {
+            $item = $keyitem[1];
+            if (!isset($item['lv4']) && !isset($item['lv2'])) continue;
+            foreach(['lv2','lv4'] as $caseId) {
+                if (!isset($item[$caseId])) continue;
+                $n += 1;
+                if ($item['base'][2] > 0) {
+                    $total_count[$caseId] += 1;
+                    $total_ratio[$caseId] += $item[$caseId][0]*1.0/$item['base'][0];
+                }
+            }
+        }
+        return [$n, $total_ratio, $total_count];
     }
     static private function cellsToToken($cells, $level=self::S2CELL_LEVEL) {
         $strs = [];
