@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include "jobSchedule.h"
 
-const char* version = "0.1.0";
 double ALG::map[MAXNLOCATIONS][MAXNLOCATIONS];
 vector<CDriver> ALG::drivers;
 vector<CTask> ALG::tasks;
@@ -12,6 +11,7 @@ vector<CScheduleItem> ALG::schedule;
 #define IN_RANGE_OR_NULL(x,n) ((x==NULL_ID)||((x>=0)&&(x<n)))
 
 #define MOVING_TIME(i,j,driver) (map[i][j]*(driver).distFactor)
+#define MOVE_TO_EVA_RATIO 0.8
 
 CTime calNextAvailable(CTime tArrive, CTask &task, CDriver &driver)
 {
@@ -31,9 +31,11 @@ double ALG::calEva(CDriver &driver, unsigned int n, int tids[])
     for (unsigned int i=0; i<n; i++) {
         int iNext = tids[i];
         CTask &task = tasks[iNext];
-        curTime += MOVING_TIME(curLoc,task.location,driver);
+        auto dist = MOVING_TIME(curLoc,task.location,driver);
+        curTime += dist; 
         curTime = calNextAvailable(curTime, task, driver);
         curLoc = task.location;
+        eva -= dist * MOVE_TO_EVA_RATIO;
         if (curTime > task.deadline) {
             eva -= task.pnlOneTime + task.pnlPerSec*(curTime-task.deadline);
         }

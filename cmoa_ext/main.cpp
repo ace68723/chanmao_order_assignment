@@ -68,6 +68,7 @@ Php::Value prepareOutput(int ret, vector<CScheduleItem> &schedule)
 {
     Php::Value root;
     root["ev_error"] = ret;
+    root["ev_version"] = version;
     if (ret != E_NORMAL) {
         return root;
     }
