@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "jobSchedule.h"
 
+const char* version = "0.1.1";
 double ALG::map[MAXNLOCATIONS][MAXNLOCATIONS];
 vector<CDriver> ALG::drivers;
 vector<CTask> ALG::tasks;

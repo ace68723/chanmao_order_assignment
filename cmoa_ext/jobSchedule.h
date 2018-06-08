@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-const char* version = "0.1.1";
+extern char* version;
 using std::string;
 using std::vector;
 #define MAXNORDER 5
