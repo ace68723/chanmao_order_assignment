@@ -108,11 +108,7 @@ class OrderCache{
     public function get_heat_map() {
         $dt = new \DateTime('now', new \DateTimeZone($this->consts['TIMEZONE']));
         $key = $this->prefix."heatMap:".$dt->format('w').":".$dt->format('G');
-        $res = Redis::hgetall($key);
-        $data = [];
-        for($i=0; $i+1<count($res); $i+=2) {
-            $data[$res[$i]] = $res[$i+1];
-        }
+        $data = Redis::hgetall($key);
         return $data;
     }
     public function reset_heat_map() {
