@@ -138,6 +138,11 @@ class DebugController extends Controller
         //$ret = (new S2CellId(5560388600765437049))->toLatLng()->toStringDegrees();
         return $this->format_success_ret($ret);
     }
+    public function calc_heat_map(Request $request) {
+        $sp = app()->make('cmoa_model_cache_service')->get('OrderCache');
+        $ret = $sp->calc_heat_map();
+        return $this->format_success_ret($ret);
+    }
     public function get_dist_mat(Request $request) {
         $input = $request->json()->all();
         $loc_dict = $input['loc_dict'];

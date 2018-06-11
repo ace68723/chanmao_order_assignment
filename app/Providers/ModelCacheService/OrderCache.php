@@ -73,4 +73,20 @@ class OrderCache{
         //Log::debug("read ".count($orders)." orders:".json_encode(array_pluck($orders,'oid')));
         return $orders;
     }
+    public function calc_heat_map($recent_days = 1) {
+        $dt = new \DateTime($recent_days.' days ago', new \DateTimeZone($this->consts['TIMEZONE']));
+        $whereCond = [
+            ['ob.created', '>', $dt->format('Y-m-d H:i:s')],
+            ['ob.dltype','>=', 1], ['ob.dltype','<=', 3], ['ob.dltype', '!=', 2],
+            ['rl.area','=',0],
+            ['ob.rid','!=',5], //escape test merchant
+        ];
+        $sql = DB::table('cm_order_base as ob')
+            ->join('cm_rr_loc as rl', 'rl.rid','=','ob.rid')
+            ->select('ob.oid', 'ob.rid', 'ob.status', 'ob.created',
+                'rl.rr_la as rr_lat', 'rl.rr_lo as rr_lng')
+             ->where($whereCond);
+        $res = $sql->get();
+        return $res;
+    }
 }

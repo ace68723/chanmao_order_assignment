@@ -71,4 +71,27 @@ class DriverCache{
         //Log::debug("read ".count($drivers)." drivers for area $area:".json_encode(array_pluck($drivers,'driver_id')));
         return $drivers;
     }
+    public function set_driver_modifier($driver_id, $nextAvailTime, $lat=null, $lng=null, $curTasks=[]) {
+        $key = $this->prefix."drModifier:".$driver_id;
+        Redis::setex($key, self::DEBUG_KEEP_SEC, json_encode([
+            'driver_id'=>$driver_id,
+            'available_time'=>$nextAvailTime,
+            'lat'=>$lat,
+            'lng'=>$lng,
+            'curTasks'=>$curTasks,
+        ]));
+    }
+    public function get_driver_modifiers($driver_ids) {
+        $keys = [];
+        foreach($driver_ids as $driver_id) {
+            $keys[] = $this->prefix."drModifier:".$driver_id;
+        }
+        $ret = Redis::mget(...$keys);
+        $data = [];
+        foreach($ret as $i=>$rec) if (!empty($rec)){
+            $driver = json_decode($rec);
+            $data[$driver['driver_id']] = $driver;
+        }
+        return $data;
+    }
 }
