@@ -73,10 +73,12 @@ class OrderCache{
         //Log::debug("read ".count($orders)." orders:".json_encode(array_pluck($orders,'oid')));
         return $orders;
     }
-    public function calc_heat_map($recent_days = 1) {
+    public function calc_heat_map($recent_days = 7) {
         $dt = new \DateTime($recent_days.' days ago', new \DateTimeZone($this->consts['TIMEZONE']));
+        $today = new \DateTime('now', new \DateTimeZone($this->consts['TIMEZONE']));
         $whereCond = [
-            ['ob.created', '>', $dt->format('Y-m-d H:i:s')],
+            ['ob.created', '>', $dt->format('Y-m-d')],
+            ['ob.created', '<', $today->format('Y-m-d')],
             ['ob.dltype','>=', 1], ['ob.dltype','<=', 3], ['ob.dltype', '!=', 2],
             ['rl.area','=',0],
             ['ob.rid','!=',5], //escape test merchant
@@ -94,7 +96,7 @@ class OrderCache{
             $t = new \DateTime('now', new \DateTimeZone($this->consts['TIMEZONE']));
             $t->setTimestamp($rec->rraction);
             $weekday = $t->format('w');
-            $hour = $t->format('H');
+            $hour = $t->format('G');
             $latlng = sprintf('%.4f,%.4f', $rec->rr_lat, $rec->rr_lng);
             if (!isset($count[$weekday][$hour][$latlng])) {
                 $count[$weekday][$hour][$latlng]=0;
@@ -102,5 +104,26 @@ class OrderCache{
             $count[$weekday][$hour][$latlng]+=1;
         }
         return $count;
+    }
+    public function get_heat_map() {
+        $dt = new \DateTime('now', new \DateTimeZone($this->consts['TIMEZONE']));
+        $key = $this->prefix."heatMap:".$dt->format('w').":".$dt->format('G');
+        $res = Redis::hgetall($key);
+        $data = [];
+        for($i=0; $i+1<count($res); $i+=2) {
+            $data[$res[$i]] = $res[$i+1];
+        }
+        return $data;
+    }
+    public function reset_heat_map() {
+        $count = $this->calc_heat_map(90);
+        foreach($count as $weekday=>$row) {
+            foreach($row as $hour=>$heat_map) {
+                $key = $this->prefix."heatMap:".$weekday.":".$hour;
+                $contents = [];
+                foreach($heat_map as $k=>$v) {$contents[] = $k; $contents[] = $v;}
+                Redis::hmset($key, ...$contents);
+            }
+        }
     }
 }
