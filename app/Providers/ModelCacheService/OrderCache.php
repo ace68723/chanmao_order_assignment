@@ -83,13 +83,16 @@ class OrderCache{
         ];
         $sql = DB::table('cm_order_base as ob')
             ->join('cm_rr_loc as rl', 'rl.rid','=','ob.rid')
-            ->select('ob.oid', 'ob.rid', 'ob.status', 'ob.created',
+            ->join('cm_order_trace as ot', 'ot.oid','=','ob.oid')
+            ->select('ob.oid', 'ob.rid', 'ob.status', 'ot.rraction',
                 'rl.rr_la as rr_lat', 'rl.rr_lo as rr_lng')
              ->where($whereCond);
         $res = $sql->get();
         $count = [];
         foreach($res as $rec) {
-            $t = new \DateTime($rec->created, new \DateTimeZone($this->consts['TIMEZONE']));
+            if ($rec->rraction<=0) continue;
+            $t = new \DateTime('now', new \DateTimeZone($this->consts['TIMEZONE']));
+            $t->setTimestamp($rec->rraction);
             $weekday = $t->format('w');
             $hour = $t->format('H');
             $latlng = sprintf('%.4f,%.4f', $rec->rr_lat, $rec->rr_lng);
