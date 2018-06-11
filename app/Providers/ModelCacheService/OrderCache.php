@@ -87,6 +87,17 @@ class OrderCache{
                 'rl.rr_la as rr_lat', 'rl.rr_lo as rr_lng')
              ->where($whereCond);
         $res = $sql->get();
-        return $res;
+        $count = [];
+        foreach($res as $rec) {
+            $t = new \DateTime($rec->created, new \DateTimeZone($this->consts['TIMEZONE']));
+            $weekday = $t->format('w');
+            $hour = $t->format('H');
+            $latlng = sprintf('%.4f,%.4f', $rec->rr_lat, $rec->rr_lng);
+            if (!isset($count[$weekday][$hour][$latlng])) {
+                $count[$weekday][$hour][$latlng]=0;
+            }
+            $count[$weekday][$hour][$latlng]+=1;
+        }
+        return $count;
     }
 }
