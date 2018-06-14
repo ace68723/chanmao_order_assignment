@@ -97,12 +97,9 @@ class DriverCache{
     }
     public function get_drivers_info($driver_ids) {
         $ids = array_pluck($driver_ids,'driver_id');
-        $whereCond = [
-            ['di.driver_id','in',$ids],
-        ];
         $sql = DB::table('cm_driver_info as di')
             ->select('di.driver_id', 'di.driver_email', 'di.driver_bank_person')
-             ->where($whereCond);
+            ->whereIn('di.driver_id',$ids);
         $res = $sql->get();
         return $res;
     }
