@@ -27,6 +27,18 @@ class DebugController extends Controller
                 'default_value'=> -1,
             ],
         ];
+        $this->consts['REQUEST_PARAS']['get_drivers_info'] = [
+            'driver_ids'=>[
+                'checker'=>['is_array', ],
+                'required'=>true,
+                'child_obj'=> [
+                    'driver_id'=>[
+                        'checker'=>['is_int',[1,'inf']],
+                        'required'=>true,
+                    ],
+                ],
+            ],
+        ];
         $this->consts['REQUEST_PARAS']['get_schedule'] = [
             'driver_id'=>[
                 'checker'=>['is_int', ],
@@ -165,5 +177,11 @@ class DebugController extends Controller
         $dist_mat = $sch_sp->get_dist_mat($loc_dict, $task_dict, $driver_dict);
         return $dist_mat;
     }
-
+    public function get_drivers_info(Request $request) {
+        $userObj = null;
+        $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
+        $sp = app()->make('cmoa_model_cache_service')->get('DriverCache');
+        $ret = $sp->get_drivers_info($la_paras['driver_ids']);
+        return $ret;
+    }
 }
