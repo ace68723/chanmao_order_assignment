@@ -22,7 +22,7 @@ class ScheduleService{
         $this->consts['REWARD_ONETIME'] = ['D'=>0,'P'=>0]; // gap value in the evaluation function
         $this->consts['REWARD_PERSEC'] = ['D'=>1.0,'P'=>0];
         $this->consts['PENALTY_ONETIME'] = ['D'=>0,'P'=>0]; //maybe deprecate this
-        $this->consts['PENALTY_PERSEC'] = ['D'=>1.1,'P'=>0.01];
+        $this->consts['PENALTY_PERSEC'] = ['D'=>3.0,'P'=>0.01];
         $this->consts['DRIVER_LIVE_SEC'] = 4*3600; //for how long the driver's location stays usable
         $this->consts['DRIVER_ADVANCE_SEC'] = 60*15; //consider driver available before its scheduled time
         $this->consts['PPTIME'] = [
