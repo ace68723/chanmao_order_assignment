@@ -97,34 +97,13 @@ class DriverCache{
     }
     public function get_drivers_info($driver_ids) {
         $ids = array_pluck($driver_ids,'driver_id');
-        return $ids;
         $whereCond = [
-            ['ob.created', '>', $dt->format('Y-m-d')],
-            ['ob.created', '<', $today->format('Y-m-d')],
-            ['ob.dltype','>=', 1], ['ob.dltype','<=', 3], ['ob.dltype', '!=', 2],
-            ['rl.area','=',0],
-            ['ob.rid','!=',5], //escape test merchant
+            ['di.driver_id','in',$ids],
         ];
-        $sql = DB::table('cm_order_base as ob')
-            ->join('cm_rr_loc as rl', 'rl.rid','=','ob.rid')
-            ->join('cm_order_trace as ot', 'ot.oid','=','ob.oid')
-            ->select('ob.oid', 'ob.rid', 'ob.status', 'ot.rraction',
-                'rl.rr_la as rr_lat', 'rl.rr_lo as rr_lng')
+        $sql = DB::table('cm_driver_info as di')
+            ->select('di.driver_id', 'di.driver_email', 'di.driver_bank_person')
              ->where($whereCond);
         $res = $sql->get();
-        $count = [];
-        foreach($res as $rec) {
-            if ($rec->rraction<=0) continue;
-            $t = new \DateTime('now', new \DateTimeZone($this->consts['TIMEZONE']));
-            $t->setTimestamp($rec->rraction);
-            $weekday = $t->format('w');
-            $hour = $t->format('G');
-            $latlng = sprintf('%.4f,%.4f', $rec->rr_lat, $rec->rr_lng);
-            if (!isset($count[$weekday][$hour][$latlng])) {
-                $count[$weekday][$hour][$latlng]=0;
-            }
-            $count[$weekday][$hour][$latlng]+=1;
-        }
-        return $count;
+        return $res;
     }
 }
