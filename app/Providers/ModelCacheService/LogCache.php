@@ -7,7 +7,7 @@ use App\Exceptions\CmException;
 
 class LogCache{
     private $prefix;
-    const LOG_KEEP_SECS = 24*3600*3;
+    const LOG_KEEP_SECS = 24*3600*7;
 
     public function __construct($root_prefix="") {
         $this->prefix = $root_prefix.class_basename(__CLASS__).":";
