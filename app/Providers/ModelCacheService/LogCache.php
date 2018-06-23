@@ -21,7 +21,7 @@ class LogCache{
     }
     public function get_at($key, $timestamp) {
         $fullkey = $this->prefix."zset:".$key;
-        $res = Redis::zrangebyscore($fullkey, $timestamp, $timestamp, 'LIMIT 0 1');
+        $res = Redis::zrangebyscore($fullkey, $timestamp, $timestamp, ['limit'=>[0,1]]);
         if (empty($res)) return [-1, null];
         return [$timestamp, json_decode($res[0],true)];
     }
