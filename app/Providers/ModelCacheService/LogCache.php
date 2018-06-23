@@ -27,12 +27,17 @@ class LogCache{
     }
     public function get_next($key, $timestamp) {
         $fullkey = $this->prefix."zset:".$key;
-        $res = Redis::zrangebyscore($fullkey, '('+$timestamp, '+inf', 'WITHSCORES LIMIT 0 1');
+        $res = Redis::zrangebyscore($fullkey, '('+$timestamp, '+inf', ['withscores'=>true, 'limit'=>[0,1]]);
         if (empty($res)) return [-1, null];
-        $timestamp = (int)($res[1]);
-        return [$timestamp, json_decode($res[0],true)];
+        $timestamp = array_values($res)[0];
+        return [$timestamp, json_decode(array_keys($res)[0],true)];
     }
     public function get_prev($key, $timestamp) {
+        $fullkey = $this->prefix."zset:".$key;
+        $res = Redis::zrevrangebyscore($fullkey, '-inf', '('+$timestamp, ['withscores'=>true, 'limit'=>[0,1]]);
+        if (empty($res)) return [-1, null];
+        $timestamp = array_values($res)[0];
+        return [$timestamp, json_decode(array_keys($res)[0],true)];
     }
     public function rewrite_all($key) {
         $keys = Redis::keys($this->prefix.$key.':*');
