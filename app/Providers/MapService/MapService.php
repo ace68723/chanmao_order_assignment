@@ -36,9 +36,9 @@ class MapService{
         return $ret;
     }
     public function test() {
+        return CacheMap::test();
         $sp = app()->make('cmoa_model_cache_service')->get('LogCache');
         $sp->rewrite_all();
-        //return CacheMap::test();
     }
     /*
      * [in] $loc_dict: [{'lat':dobule, 'lng':double, 'addr':str}]
