@@ -29,7 +29,7 @@ class LogCache{
         $fullkey = $this->prefix."zset:".$key;
         $res = Redis::zrangebyscore($fullkey, '('+$timestamp, '+inf', 'WITHSCORES LIMIT 0 1');
         if (empty($res)) return [-1, null];
-        $timestamp = int($res[1]);
+        $timestamp = (int)($res[1]);
         return [$timestamp, json_decode($res[0],true)];
     }
     public function get_prev($key, $timestamp) {
@@ -41,7 +41,7 @@ class LogCache{
             $ss = explode(":", $oldkey);
             $last = $ss[count($ss)-1];
             if (!is_numeric($last)) continue;
-            $ts = int($last);
+            $ts = (int)($last);
             $dataStr = Redis::get($oldkey);
             Redis::zadd($fullkey, $ts, $dataStr);
         }
