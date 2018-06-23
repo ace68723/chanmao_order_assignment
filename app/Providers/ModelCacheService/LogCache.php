@@ -14,29 +14,36 @@ class LogCache{
     }
     public function log($key, $data) {
         $curTime = time();
-        $fullkey = $this->prefix.$key.":lastLogTime";
         Log::debug('add log cache '.$key.':'.$curTime);
-        Redis::setex($fullkey, self::LOG_KEEP_SECS, $curTime);
-        $fullkey = $this->prefix.$key.":".$curTime;
-        Redis::setex($fullkey, self::LOG_KEEP_SECS, json_encode($data));
+        $fullkey = $this->prefix."zset:".$key;
+        Redis::zadd($fullkey, $curTime, json_encode($data));
+        #Redis::zremrangebyscore($fullkey, '-inf', $curTime-self::LOG_KEEP_SECS);
     }
-    public function get($key, $timestamp) {
-        $fullkey = $this->prefix.$key.":".$timestamp;
-        $dataStr = Redis::get($fullkey);
-        return is_null($dataStr)? null: json_decode($dataStr,true);
+    public function get_at($key, $timestamp) {
+        $fullkey = $this->prefix."zset:".$key;
+        $res = Redis::zrangebyscore($fullkey, $timestamp, $timestamp, 'LIMIT 0 1');
+        if (empty($res)) return [-1, null];
+        return [$timestamp, json_decode($res[0],true)];
     }
-    public function get_last($key) {
-        $lastLogTime = Redis::get($this->prefix.$key.":lastLogTime");
-        if (empty($lastLogTime)) {
-            return null;
-        }
-        return [$lastLogTime, $this->get($key, $lastLogTime)];
+    public function get_next($key, $timestamp) {
+        $fullkey = $this->prefix."zset:".$key;
+        $res = Redis::zrangebyscore($fullkey, '('+$timestamp, '+inf', 'WITHSCORES LIMIT 0 1');
+        if (empty($res)) return [-1, null];
+        $timestamp = int($res[1]);
+        return [$timestamp, json_decode($res[0],true)];
     }
-    public function rewrite_all() {
-        $keys = Redis::keys($this->prefix.'*');
-        foreach($keys as $fullkey) {
-            $dataStr = Redis::get($fullkey);
-            Redis::setex($fullkey, self::LOG_KEEP_SECS, $dataStr);
+    public function get_prev($key, $timestamp) {
+    }
+    public function rewrite_all($key) {
+        $keys = Redis::keys($this->prefix.$key.':*');
+        $fullkey = $this->prefix."zset:".$key;
+        foreach($keys as $oldkey) {
+            $ss = explode(":", $oldkey);
+            $last = $ss[count($ss)-1];
+            if (!is_numeric($last)) continue;
+            $ts = int($last);
+            $dataStr = Redis::get($oldkey);
+            Redis::zadd($fullkey, $ts, $dataStr);
         }
     }
 }

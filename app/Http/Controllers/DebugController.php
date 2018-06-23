@@ -54,9 +54,13 @@ class DebugController extends Controller
             ],
             'timestamp'=>[
                 'checker'=>['is_int', ],
+                'required'=>true,
+            ],
+            'search_direction'=>[
+                'checker'=>['is_string', ],
                 'required'=>false,
-                'description'=> '-1/unset to get last',
-                'default_value'=> -1,
+                'description'=> 'enum("next","prev","at")',
+                'default_value'=> 'at',
             ],
         ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
         $this->consts['REQUEST_PARAS']['get_unicache'] = [
@@ -102,12 +106,17 @@ class DebugController extends Controller
         $userObj = null;
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_model_cache_service')->get('LogCache');
-        if ($la_paras['timestamp'] <= 0) {
-            list($logTime, $ret) = $sp->get_last($la_paras['log_type']);
-            $ret['logTime'] = $logTime;
+        if ($la_paras['search_direction'] == 'prev') {
+            list($logTime, $ret) = $sp->get_prev($la_paras['log_type'], $la_paras['timestamp']);
+        }
+        elseif ($la_paras['search_direction'] == 'next') {
+            list($logTime, $ret) = $sp->get_next($la_paras['log_type'], $la_paras['timestamp']);
         }
         else {
-            $ret = $sp->get($la_paras['log_type'], $la_paras['timestamp']);
+            list($logTime, $ret) = $sp->get_at($la_paras['log_type'], $la_paras['timestamp']);
+        }
+        if (!empty($ret)) {
+            $ret['logTime'] = $logTime;
         }
         return $this->format_success_ret($ret);
     }
