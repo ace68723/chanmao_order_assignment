@@ -32,4 +32,11 @@ class LogCache{
         }
         return [$lastLogTime, $this->get($key, $lastLogTime)];
     }
+    public function rewrite_all() {
+        $keys = Redis::keys($this->prefix.'*');
+        foreach($keys as $fullkey) {
+            $dataStr = Redis::get($fullkey);
+            Redis::setex($fullkey, self::LOG_KEEP_SECS, $dataStr);
+        }
+    }
 }
