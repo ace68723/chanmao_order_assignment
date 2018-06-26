@@ -17,8 +17,11 @@ class CacheMap{
     const ACCU_MIN_INTER = 3600;
     const ACCU_MAX_INTER = 3600*24*7;
     const HEURISTIC_RATIO = 118.75;
-    const HEURISTIC_FACTOR = ['lv2'=>1.2, 'lv4'=>1.5];
+    const HEURISTIC_FACTOR = ['lv2'=>1.5, 'lv4'=>1.5];
 
+    static public function TokenToExtLoc($tok) {
+        return self::CellsToExtLoc(self::tokenToCells($tok));
+    }
     static public function ExtLocToCells($start_loc, $end_loc) {
         $cells = [];
         foreach([$start_loc,$end_loc] as $loc_str) {
@@ -335,7 +338,7 @@ class CacheMap{
         $prefixlen = strlen(self::PREFIX."pair:");
         $cursor = 0;
         do {
-            list($cursor, $keys) = Redis::scan($cursor, 'match', $key_pat, 'count', 200);
+            list($cursor, $keys) = Redis::scan($cursor, 'match', $key_pat, 'count', 500);
             if (empty($keys)) break;
             $items = Redis::mget(...$keys);
             foreach ($items as $i=>$item) {
@@ -347,20 +350,22 @@ class CacheMap{
         $all_item = self::scan_item();
         $total_ratio = ['lv2'=>0, 'lv4'=>0];
         $total_count = ['lv2'=>0, 'lv4'=>0];
+        $samples = [];
         $n = 0;
         foreach($all_item as $keyitem) {
             $item = $keyitem[1];
-            if (!isset($item['lv4']) && !isset($item['lv2'])) continue;
-            foreach(['lv2','lv4'] as $caseId) {
+            if (!isset($item['lv4'])) continue;
+            foreach(['lv4'] as $caseId) {
                 if (!isset($item[$caseId])) continue;
                 $n += 1;
                 if ($item['base'][2] > 0) {
                     $total_count[$caseId] += 1;
                     $total_ratio[$caseId] += $item[$caseId][0]*1.0/$item['base'][0];
+                    if (count($samples)<100) $samples[] = $keyitem;
                 }
             }
         }
-        return [$n, $total_ratio, $total_count];
+        return [$n, $total_ratio, $total_count, $samples];
     }
     static private function cellsToToken($cells, $level=self::S2CELL_LEVEL) {
         $strs = [];
