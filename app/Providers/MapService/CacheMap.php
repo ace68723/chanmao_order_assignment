@@ -9,7 +9,6 @@ use App\Exceptions\CmException;
 class CacheMap{
     const PREFIX = "cmoa:map:";
     const KEEP_ALIVE_SEC = 3600*24;
-    const DEG_PRECISION_FORMAT= "%.4f,%.4f";
     const REDIS_BATCH_SIZE = 1000;
     const S2CELL_LEVEL = 20;//must >= 14 <30; lvl 20 cell is about 10m*10m
     const NEAR_LEVEL_MAX = 14;
@@ -19,8 +18,8 @@ class CacheMap{
     const HEURISTIC_RATIO = 118.75;
     const HEURISTIC_FACTOR = ['lv2'=>1.5, 'lv4'=>1.5];
 
-    static public function TokenToExtLoc($tok) {
-        return self::CellsToExtLoc(self::tokenToCells($tok));
+    static public function TokenToExtLoc($tok, $fmtStr='%.6f,%.6f') {
+        return self::CellsToExtLoc(self::tokenToCells($tok), $fmtStr);
     }
     static public function ExtLocToCells($start_loc, $end_loc) {
         $cells = [];
@@ -31,11 +30,11 @@ class CacheMap{
         }
         return $cells;
     }
-    static public function CellsToExtLoc($cells) {
+    static public function CellsToExtLoc($cells, $fmtStr) {
         $ret = [];
         foreach($cells as $cell) {
             $latlng = $cell->toLatLng();
-            $ret[] = sprintf(self::DEG_PRECISION_FORMAT, $latlng->latDegrees(),$latlng->lngDegrees());
+            $ret[] = sprintf($fmtStr, $latlng->latDegrees(),$latlng->lngDegrees());
         }
         return $ret;
     }
@@ -111,8 +110,7 @@ class CacheMap{
             $cells = self::ExtLocToCells(...$pair);
             $tok = self::cellsToToken($cells);
             $rcells = self::tokenToCells($tok);
-            $rLocs = self::CellsToExtLoc($rcells);
-            $ret[] = [$tok, $rLocs];
+            $ret[] = [$tok];
         }
         return $ret;
     }
@@ -212,34 +210,6 @@ class CacheMap{
             }
         }
         return $pats;
-    }
-    static public function query_near_batch($missed_mat) {
-        $key_prefix = self::PREFIX . "pair:";
-        $agg_pats = [];
-        foreach($missed_mat as $start_loc=>$row) {
-            foreach($row as $end_loc=>$elem) {
-                $cells = self::ExtLocToCells($start_loc, $end_loc);
-                $level = self::NEAR_LEVEL_MAX;
-                $pats = self::near_patterns_agg($cells, $level);
-                foreach($pats as $pat) {
-                    $agg_pats[$pat] = 1;
-                }
-            }
-        }
-        $data = [];
-        foreach($agg_pats as $pat=>$elem) {
-            $keys = Redis::keys($key_prefix.$pat.'*'); // this is limited by the pattern
-            if (!empty($keys)) {
-                $values = Redis::mget(...$keys);
-                foreach($values as $i=>$value) if (!empty($value)){
-                    $token = substr($keys[$i], strrpos($keys[$i],':')+1);
-                    $cells = self::tokenToCells($token);
-                    $locs = self::CellsToExtLoc($cells);
-                    $data[$locs[0]][$locs[1]] = json_decode($value, true);
-                }
-            }
-        }
-        return $data;
     }
     static private function dist_km($cell_a, $cell_b) {
         return $cell_a->toLatLng()->getEarthDistance($cell_b->toLatLng())/1000.0;

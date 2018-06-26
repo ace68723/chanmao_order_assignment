@@ -10,7 +10,8 @@ class MapService{
     const CENTER = [43.78,-79.28];
     //['LAT'=>1,'LNG'=>1.385037];//1.0/cos($this->consts['CENTER']['LAT']/180.0*3.14159)];
     const DEG_TO_KM_RATIO = [111.1949,154.0091];//6371*1.0/180*3.14159
-    const DEG_PRECISION = 4;
+    const DEG_PRECISION_FORMAT= "%.6f,%.6f";
+    //although the grid is about 100m, we need its center precise enough for stable google map query response
     const GRID_LEN_KM = 0.1;
     public function __construct()
     {
@@ -25,15 +26,14 @@ class MapService{
         }
         return $ret;
     }
-    static public function toLatLng($idx_arr) {
+    static public function toLatLngStr($idx_arr) {
         $ret = $idx_arr;
         for($i=0; $i<2; $i++) {
             $ret[$i] += 0.5;
             $ret[$i] *= self::GRID_LEN_KM/self::DEG_TO_KM_RATIO[$i];
             $ret[$i] += self::CENTER[$i];
-            $ret[$i] = round($ret[$i],self::DEG_PRECISION);
         }
-        return $ret;
+        return sprintf(self::DEG_PRECISION_FORMAT, $ret[0],$ret[1]);
     }
     public function test() {
         return CacheMap::test();
@@ -49,7 +49,7 @@ class MapService{
         foreach($loc_dict as $k=>$loc) {
             $grid_idx_arr = self::toGridIdx([$loc['lat'], $loc['lng']]);
             $gridId = implode(',', $grid_idx_arr);
-            $latlng = implode(',', self::toLatLng($grid_idx_arr));
+            $latlng = self::toLatLngStr($grid_idx_arr);
             $loc_dict[$k]['gridId'] = $gridId;
             $loc_dict[$k]['grid_idx_arr'] = $grid_idx_arr;
             $loc_dict[$k]['adjustLatLng'] = $latlng;
@@ -63,7 +63,7 @@ class MapService{
         $origin_loc_arr = [];
         $dest_loc_arr = [];
         foreach($grid_dict as $gridId=>$v) {
-            $latlng=implode(',',self::toLatLng(explode(',',$gridId)));
+            $latlng=self::toLatLngStr(explode(',',$gridId));
             $grid_dict[$gridId]['idx'] = count($origin_loc_arr);
             $origin_loc_arr[] = $latlng;
             if ($grid_dict[$gridId]['type'] == 1) {
@@ -128,7 +128,8 @@ class MapService{
         foreach($sel_mat as $start_loc=>$row) {
             foreach($row as $end_loc=>$elem) {
                 if (!isset($dist_mat[$start_loc][$end_loc])) {
-                    Log::debug(__FUNCTION__.':not_set:'.$start_loc.$end_loc);
+                    //Log::debug(__FUNCTION__.':not_set:'.$start_loc.$end_loc);
+                    //not set because of unnecessary, i.e. not in the query target
                     continue;
                 }
                 $estm = $dist_mat[$start_loc][$end_loc];
