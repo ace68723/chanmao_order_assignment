@@ -136,7 +136,9 @@ class CacheMap{
     static private function update2d($keys, $idx, $dudis, $caseId) {
         Log::debug(__FUNCTION__.": updating cache map ".count($keys)." keys. ".$caseId);
         if (count($keys)) {
-            Log::debug(__FUNCTION__.": sample:".$keys[0].":".json_encode($dudis[0]));
+            for($i=0; $i<count($keys); $i++) {
+                Log::debug(__FUNCTION__.": sample:".$keys[$i].":".json_encode($dudis[$i]));
+            }
         }
         self::mget2d($keys, $idx, $olddata, $missing);
         $newdata = [];
