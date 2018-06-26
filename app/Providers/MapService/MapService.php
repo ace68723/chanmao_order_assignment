@@ -98,12 +98,7 @@ class MapService{
         return 'base';
     }
     public function learn_map($target_mat) {
-        $isHoliday=null;
-        $caseId = $this->get_caseId($isHoliday);
-        list($dist_mat, $missed) = CacheMap::get_mat($target_mat);
-        list($sel_origins, $sel_dests) = $this->approx_select($missed);
-        $sel_mat = GoogleMapProxy::get_gm_mat($sel_origins, $sel_dests);
-        CacheMap::update_mat($sel_mat, $caseId);
+        return; //close learn map; learn it in the get_dist_mat call's verify
     }
     public function get_dist_mat($target_mat) {
         $isHoliday=null;
@@ -132,7 +127,10 @@ class MapService{
         $errors = [];
         foreach($sel_mat as $start_loc=>$row) {
             foreach($row as $end_loc=>$elem) {
-                if (!isset($dist_mat[$start_loc][$end_loc])) continue;
+                if (!isset($dist_mat[$start_loc][$end_loc])) {
+                    Log::debug(__FUNCTION__.':not_set:'.$start_loc.$end_loc);
+                    continue;
+                }
                 $estm = $dist_mat[$start_loc][$end_loc];
                 $real = $elem[0];
                 if ($real == 0) {

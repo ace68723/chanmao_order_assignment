@@ -73,7 +73,7 @@ class CacheMap{
     static public function update_mat($dudi_mat, $caseid = 'base') {
         $key_prefix = self::PREFIX . "pair:";
         $curTime = time();
-        $pairkeys = []; $idx = []; $missing = []; $dudis = [];
+        $pairkeys = []; $idx = []; $dudis = [];
         foreach ($dudi_mat as $start_loc=>$rows) {
             foreach($rows as $end_loc=>$elem) {
                 if ($start_loc == $end_loc) continue;
@@ -117,15 +117,17 @@ class CacheMap{
         return $ret;
     }
     static private function accumlate(&$tuple, $dudi, $curTime) {
-        $ratio = 0.9;
-        if ($tuple[2]>0 && $curTime - $tuple[2] < self::ACCU_MIN_INTER) return false;
-        if ($tuple[2]<=0) $ratio = 0;
-        if ($curTime - $tuple[2] > self::ACCU_MAX_INTER) $ratio = 0.5;
+        //if ($tuple[2]>0 && $curTime - $tuple[2] < self::ACCU_MIN_INTER) return false;
+        $ratio = 0.5;
+        if ($tuple[2]<=0) {
+            $ratio = 0;
+        }
         for($i=0; $i<2; $i++) {
             if ($tuple[$i] != $dudi[$i]) {
-                $tuple[$i] *= $ratio;
-                $tuple[$i] += (1-$ratio)*$dudi[$i];
-                $tuple[$i] = (int)($tuple[$i]);
+                //$tuple[$i] *= $ratio;
+                //$tuple[$i] += (1-$ratio)*$dudi[$i];
+                //$tuple[$i] = (int)($tuple[$i]);
+                $tuple[$i] = $dudi[$i];
             }
         }
         $tuple[2] = $curTime;
