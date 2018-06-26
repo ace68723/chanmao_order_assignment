@@ -193,4 +193,9 @@ class DebugController extends Controller
         $ret = $sp->get_drivers_info($la_paras['driver_ids']);
         return $this->format_success_ret($ret);
     }
+    public function debug_call(Request $request) {
+        $input = $request->json()->all();
+        $sp = app()->make('cmoa_map_service');
+        return $sp->decodeToken($input['token']);
+    }
 }

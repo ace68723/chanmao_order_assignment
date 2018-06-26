@@ -189,4 +189,7 @@ class MapService{
         }
         return $nEle;
     }
+    public function decodeToken($tok) {
+        return CacheMap::TokenToExtLoc($tok);
+    }
 }
