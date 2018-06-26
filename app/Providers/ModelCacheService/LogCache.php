@@ -39,7 +39,7 @@ class LogCache{
         $timestamp = array_values($res)[0];
         return [$timestamp, json_decode(array_keys($res)[0],true)];
     }
-    public function rewrite_all($key) {
+    private function rewrite_all($key) {
         $keys = Redis::keys($this->prefix.$key.':*');
         $fullkey = $this->prefix."zset:".$key;
         foreach($keys as $oldkey) {
