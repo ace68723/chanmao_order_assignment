@@ -430,6 +430,7 @@ class ScheduleService{
                     $newTaskItem = [
                         'task_id'=>$task_arr[$tid]['task_id'],
                         'oid'=>$task_arr[$tid]['oid'],
+                        'deadline'=>$task_arr[$tid]['deadline'],
                         'completeTime'=>$sche['completeTime'][$i],
                         'locId'=>$task_arr[$tid]['locId'],
                     ];

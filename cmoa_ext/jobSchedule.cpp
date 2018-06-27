@@ -127,16 +127,6 @@ int ALG::findScheduleGreedy()
         printf("failed check\n");
         return ret;
     }
-    /*
-    vector<int> prior(drivers.size());
-    for (unsigned int i=0; i<drivers.size(); i++) prior[i] = i;
-    for (unsigned int i=0; i<drivers.size(); i++) {
-        for (unsigned int j=i+1; j<drivers.size(); j++)
-            if (drivers[prior[i]]._tasksAtHand.size() < drivers[prior[j]]._tasksAtHand.size()) 
-                std::swap(prior[i],prior[j]);
-    }
-    */
-    //use the driver with non-empty tasksAtHand first
     for (unsigned int ti=0; ti<tasks.size(); ti++) if (tasks[ti].did == NULL_ID && tasks[ti].prevTask==NULL_ID)
     {
         double bestEvaDiff = 0;

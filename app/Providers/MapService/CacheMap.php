@@ -92,9 +92,7 @@ class CacheMap{
         }
     }
     static public function test() {
-        $samples = self::check_dirty();
-        self::remove_dirty($samples);
-        return $samples;
+        return self::check_dirty();
         $ret = [];
         $pairs = [];
         $pairs[] = ["43,-79", "43,-80"];
@@ -323,12 +321,6 @@ class CacheMap{
                 yield [$keys[$i], json_decode($item, true)];
             }
         } while ($cursor);
-    }
-    static public function remove_dirty($samples) {
-        foreach($samples as $rec) {
-            $key = $rec[0];
-            Redis::del($key);
-        }
     }
     static public function check_dirty() {
         $all_item = self::scan_item();
