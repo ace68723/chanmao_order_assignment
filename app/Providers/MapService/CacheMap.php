@@ -16,7 +16,7 @@ class CacheMap{
     const ACCU_MIN_INTER = 3600;
     const ACCU_MAX_INTER = 3600*24*7;
     const HEURISTIC_RATIO = 118.75;
-    const HEURISTIC_FACTOR = ['lv2'=>1.5, 'lv4'=>1.5];
+    const HEURISTIC_FACTOR = ['lv2'=>1.5, 'lv4'=>1.8];
 
     static public function TokenToExtLoc($tok, $fmtStr='%.6f,%.6f') {
         return self::CellsToExtLoc(self::tokenToCells($tok), $fmtStr);
@@ -114,18 +114,21 @@ class CacheMap{
         }
         return $ret;
     }
+    // $tuple = [avg_duration, avg_distance, lastUpdateTime, duration_range, dist_range]
     static private function accumlate(&$tuple, $dudi, $curTime) {
-        //if ($tuple[2]>0 && $curTime - $tuple[2] < self::ACCU_MIN_INTER) return false;
-        $ratio = 0.5;
-        if ($tuple[2]<=0) {
-            $ratio = 0;
+        if ($tuple[2]>0 && $curTime - $tuple[2] < self::ACCU_MIN_INTER) return false; //prevent frequent update
+        if (count($tuple)<=3 || $tuple[2]<=0) {
+            $tuple = [$dudi[0], $dudi[1], $curTime, [$dudi[0],$dudi[0]], [$dudi[1],$dudi[1]]];
+            return true;
         }
+        $ratio = 0.5;
         for($i=0; $i<2; $i++) {
             if ($tuple[$i] != $dudi[$i]) {
-                //$tuple[$i] *= $ratio;
-                //$tuple[$i] += (1-$ratio)*$dudi[$i];
-                //$tuple[$i] = (int)($tuple[$i]);
-                $tuple[$i] = $dudi[$i];
+                $tuple[$i] *= $ratio;
+                $tuple[$i] += (1-$ratio)*$dudi[$i];
+                $tuple[$i] = (int)($tuple[$i]);
+                $tuple[$i+3][0] = min($tuple[$i],$tuple[$i+3][0]);
+                $tuple[$i+3][1] = max($tuple[$i],$tuple[$i+3][1]);
             }
         }
         $tuple[2] = $curTime;
@@ -144,26 +147,25 @@ class CacheMap{
         foreach ($dudis as $i=>$elem) {
             $start_loc = $idx[$i][0];
             $end_loc = $idx[$i][1];
+            $shouldUpdate = true;
             if (isset($olddata[$start_loc][$end_loc])) {
                 $newitem = $olddata[$start_loc][$end_loc];
                 if (empty($newitem[$caseId])) {
-                    $newitem[$caseId] = [$elem[0], $elem[1], $curTime];
-                    $shouldUpdate = true;
+                    $newitem[$caseId] = [$elem[0], $elem[1], $curTime, [$elem[0],$elem[0]], [$elem[1],$elem[1]]];
                 }
                 else {
                     $shouldUpdate = self::accumlate($newitem[$caseId],$elem,$curTime);
                 }
-                if (!$shouldUpdate) continue;
             }
             else {
-                $newitem[$caseId] = [$elem[0],$elem[1],$curTime];
+                $newitem[$caseId] = [$elem[0], $elem[1], $curTime, [$elem[0],$elem[0]], [$elem[1],$elem[1]]];
                 if ($caseId != 'base') {
-                    $newitem['base'] = [
-                        (int)($elem[0]*1.0/self::HEURISTIC_FACTOR[$caseId]),
-                        $elem[1],-1
-                    ];
+                    $du = (int)($elem[0]*1.0/self::HEURISTIC_FACTOR[$caseId]);
+                    $di = $elem[1];
+                    $newitem['base'] = [$du, $di, -1, [$du, $du], [$di,$di]];
                 }
             }
+            if (!$shouldUpdate) continue;
             $newdata[] = $keys[$i];
             $newdata[] = json_encode($newitem);
         }
