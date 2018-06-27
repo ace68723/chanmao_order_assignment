@@ -92,7 +92,7 @@ class CacheMap{
         }
     }
     static public function test() {
-        return self::calc_ratio();
+        return self::check_dirty();
         $ret = [];
         $pairs = [];
         $pairs[] = ["43,-79", "43,-80"];
@@ -321,6 +321,31 @@ class CacheMap{
                 yield [$keys[$i], json_decode($item, true)];
             }
         } while ($cursor);
+    }
+    static public function check_dirty() {
+        $all_item = self::scan_item();
+        $samples = [];
+        foreach($all_item as $keyitem) {
+            $item = $keyitem[1];
+            if (!isset($item['lv4']) && !isset($item['lv2'])) continue;
+            $mi = $item['base'];
+            $ma = $item['base'];
+            foreach(['lv2', 'lv4'] as $caseId) {
+                if (!isset($item[$caseId])) continue;
+                for($i=0; $i<2; $i++) {
+                    $mi[$i] = min($mi[$i], $item[$caseId][$i]);
+                    $ma[$i] = max($ma[$i], $item[$caseId][$i]);
+                }
+            }
+            $abnormal = false;
+            for($i=0; $i<2; $i++) {
+                if ($ma[$i]>=2*$mi[$i]) {
+                    $abnormal = true; break;
+                }
+            }
+            if ($abnormal && count($samples)<1000) $samples[] = $keyitem;
+        }
+        return [count($samples), $samples];
     }
     static public function calc_ratio() {
         $all_item = self::scan_item();
