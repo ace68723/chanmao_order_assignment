@@ -421,6 +421,7 @@ class ScheduleService{
             $driver = $driver_arr[$sche['did']];
             $newDriverItem = ['driver_id'=>$driver['driver_id'],
                 'areaId'=>$driver['areaId'],
+                'score'=>$sche['eva'],
                 'passback_loc'=>$driver['passback_loc'],
                 'tasks'=>[]];
             if (!empty($curTasks[$driver['driver_id']]['tasks']))
