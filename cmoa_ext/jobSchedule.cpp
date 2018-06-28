@@ -127,28 +127,37 @@ int ALG::findScheduleGreedy()
         printf("failed check\n");
         return ret;
     }
+    vector<int> unassigned_first_tasks;
     for (unsigned int ti=0; ti<tasks.size(); ti++) if (tasks[ti].did == NULL_ID && tasks[ti].prevTask==NULL_ID)
+        unassigned_first_tasks.push_back(ti);
+    for(unsigned int countIdx = 0; countIdx < unassigned_first_tasks.size(); countIdx++)
     {
+        int select_task_uaidx = NULL_ID;
         double bestEvaDiff = 0;
         int select_driver = NULL_ID;
         int bestN;
         int bestSol[MAXNPARALLELTASKS];
-        for (unsigned int di=0; di<drivers.size(); di++) {
-            double evaDiff;
-            unsigned int n;
-            int sol[MAXNPARALLELTASKS];
-            if (tryAssignOrderToDriver(ti,drivers[di],evaDiff,n,sol)) {
-                if (select_driver == NULL_ID || bestEvaDiff < evaDiff) {
-                    select_driver = di;
-                    bestEvaDiff = evaDiff;
-                    bestN = n;
-                    for(unsigned int i=0; i<n; i++) bestSol[i] = sol[i];
+        for(unsigned int ii=0; ii<unassigned_first_tasks.size(); ii++) {
+            int ti = unassigned_first_tasks[ii];
+            if (ti == NULL_ID) continue;
+            for (unsigned int di=0; di<drivers.size(); di++) {
+                double evaDiff;
+                unsigned int n;
+                int sol[MAXNPARALLELTASKS];
+                if (tryAssignOrderToDriver(ti,drivers[di],evaDiff,n,sol)) {
+                    if (select_driver == NULL_ID || bestEvaDiff < evaDiff) {
+                        select_driver = di;
+                        select_task_uaidx = ii;
+                        bestEvaDiff = evaDiff;
+                        bestN = n;
+                        for(unsigned int i=0; i<n; i++) bestSol[i] = sol[i];
+                    }
                 }
             }
         }
-        if (select_driver != NULL_ID) {
-            setAssignedTasks(drivers[select_driver], bestN, bestSol);
-        }
+        if (select_driver == NULL_ID) break;
+        setAssignedTasks(drivers[select_driver], bestN, bestSol);
+        unassigned_first_tasks[select_task_uaidx] = NULL_ID;
     }
     formatSchedule(drivers.size());
     return E_NORMAL;
