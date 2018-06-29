@@ -38,9 +38,10 @@ class CacheMap{
         }
         return $ret;
     }
-    static public function extractCase($caseId, &$dist_mat) {
+    static public function extractCase($caseId, &$dist_mat, &$mileage_mat) {
         foreach($dist_mat as $start_loc=>$row) {
             foreach($row as $end_loc=>$elem) {
+                $mileage_mat[$start_loc][$end_loc] = $elem[$caseId][1] ?? $elem['base'][1];
                 $dist_mat[$start_loc][$end_loc] = $elem[$caseId][0] ??
                     (int)($elem['base'][0]*self::HEURISTIC_FACTOR[$caseId]);
             }
@@ -100,11 +101,7 @@ class CacheMap{
         $pairs[] = ["43.01,-79", "43,-80.01"];
         //foreach($pairs as $pair) {
         $pair = $pairs[0];
-        self::update_mat([$pair[0]=>[$pair[1]=>[40,50]]],'lv2');
         $target_mat = [$pair[0]=>[$pair[1]=>0]];
-        list($mat, $missing) = self::get_mat($target_mat);
-        self::extractCase('lv4',$mat);
-        $ret[] = $mat;
         //}
         foreach($pairs as $pair) {
             $cells = self::ExtLocToCells(...$pair);
@@ -234,11 +231,11 @@ class CacheMap{
         }
         return [$dists, $cell_dict]; //$dists may be shorter than $cell_dict
     }
-    static public function weighted_approx($cell_pair, $ref_data, $caseId, $max_range_km=2.4)
+    static private function weighted_approx($cell_pair, $ref_data, $caseId, $max_range_km=2.4)
     {
         $default_ratio = self::HEURISTIC_RATIO*(self::HEURISTIC_FACTOR[$caseId] ?? 1);
         $total_weight = 0;
-        $total_ratio = 0;
+        $total_ratio = [0,0];
         $ll = self::dist_km($cell_pair[0], $cell_pair[1]);
         $found = false;
         $count = ['nBase'=>0,'nFar'=>0];
@@ -246,27 +243,38 @@ class CacheMap{
                 $count['nBase'] += 1;
                 $l2_dist = self::dist_km($ref_item['cells'][0],$ref_item['cells'][1]);
                 $value = $ref_item['elem'][$caseId][0] ?? $ref_item['elem']['base'][0]*self::HEURISTIC_FACTOR[$caseId];
-                $ratio = $value/$l2_dist;
+                $value2 = $ref_item['elem'][$caseId][1] ?? $ref_item['elem']['base'][1];
+                $ratio = [$value/$l2_dist, $value2/$l2_dist];
                 $expw = $ref_item['sum_diff_dist'];
                 if (-$expw > $max_range_km) {
                     $count['nFar'] += 1;
                     continue;
                 }
-                $weight = exp($expw/$max_range_km);//100 is heuristic mean for 200*200 grid
+                $weight = exp($expw/$max_range_km); //100 is heuristic mean for 200*200 grid
                 $found = true;
                 //Log::debug(__FUNCTION__.":".self::cellsToToken($ref_item['cells'])." weight:".$weight." ratio:".$ratio);
                 $total_weight += $weight;
-                $total_ratio += $weight * $ratio;
+                $total_ratio[0] += $weight * $ratio[0];
+                $total_ratio[1] += $weight * $ratio[1];
+        }
+        $ret = [0,0];
+        if (!$found) {
+            $ret = [$ll*$default_ratio, $ll];
+        }
+        else {
+            for($i=0; $i<2; $i++) $ret[$i] = $ll * ($total_ratio[$i]/$total_weight);
         }
         //Log::debug(__FUNCTION__.":".self::cellsToToken($cell_pair)." count:".json_encode($count));
-        return (int)round($ll * ($found ? $total_ratio/$total_weight : $default_ratio));
+        for($i=0; $i<2; $i++) $ret[$i] = (int)round($ret[$i]);
+        return $ret;
     }
-    static public function approx_mat($missed_pairs, &$dist_mat, $caseId) {
+    static public function approx_mat($missed_pairs, &$dist_mat, &$mileage_mat, $caseId) {
         foreach ($missed_pairs as $start_loc=>$missed_rows) {
             foreach ($missed_rows as $end_loc=>$missed_elem) {
                 $cell_pair = self::ExtLocToCells($start_loc, $end_loc);
                 $ref_data = self::query_near($cell_pair);
-                $dist_mat[$start_loc][$end_loc] = self::weighted_approx($cell_pair, $ref_data, $caseId);
+                list($dist_mat[$start_loc][$end_loc], $mileage_mat[$start_loc][$end_loc])
+                    = self::weighted_approx($cell_pair, $ref_data, $caseId);
             }
         }
     }

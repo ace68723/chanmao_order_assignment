@@ -86,6 +86,7 @@ protected:
     int	        _loc;
     int	        _nOrder;//of _assignedTasks, must set to -1 whenever modified _assignedTasks
     double      _eva;//of _assignedTasks
+    double      _meters;//of _assignedTasks
     friend class ALG;
 };
 
@@ -138,6 +139,7 @@ class CScheduleItem
 public:
     CID did;
     double eva;
+    double meters;
     vector<CID>  tids; //the tasks assigned to this driver, in chronological order
     vector<CTime>  completeTime;
 };
@@ -153,6 +155,7 @@ public:
     static vector<CTask> tasks;
     static int nLocations;
     static double map[MAXNLOCATIONS][MAXNLOCATIONS];
+    static double meterMap[MAXNLOCATIONS][MAXNLOCATIONS];
     static vector<CScheduleItem> schedule;
 
 private:
@@ -168,6 +171,7 @@ private:
     //static bool select_next_task(CDriver & driver, int &iSelectedTask);
     static void calFTime(CDriver &driver, CTime fTimes[]);
     static double calEva(CDriver &driver, unsigned int n, int tids[]);
+    static double calMeters(CDriver &driver, unsigned int n, int tids[]);
     static void _searchOptTime(CDriver &driver, CTime curTime, int curLoc, int nFinished, int n,
         int tids[], int sol[], bool taskDoneMark[], double &bestFTime, int bestSol[]);
     static void _searchwEva(CDriver &driver, CTime curTime, int curLoc, int nFinished, int n,

@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include "jobSchedule.h"
 
-const char* version = "0.1.2"; //updated greedy
+const char* version = "0.1.3"; //add meters from input to output
 double ALG::map[MAXNLOCATIONS][MAXNLOCATIONS];
+double ALG::meterMap[MAXNLOCATIONS][MAXNLOCATIONS];
 vector<CDriver> ALG::drivers;
 vector<CTask> ALG::tasks;
 int ALG::nLocations;
@@ -12,7 +13,8 @@ vector<CScheduleItem> ALG::schedule;
 #define IN_RANGE_OR_NULL(x,n) ((x==NULL_ID)||((x>=0)&&(x<n)))
 
 #define MOVING_TIME(i,j,driver) (map[i][j]*(driver).distFactor)
-#define MOVE_TO_EVA_RATIO 0.8
+#define MOVING_METERS(i,j,driver) (meterMap[i][j])
+#define METER_TO_EVA_RATIO 0.6
 
 CTime calNextAvailable(CTime tArrive, CTask &task, CDriver &driver)
 {
@@ -32,11 +34,12 @@ double ALG::calEva(CDriver &driver, unsigned int n, int tids[])
     for (unsigned int i=0; i<n; i++) {
         int iNext = tids[i];
         CTask &task = tasks[iNext];
-        auto dist = MOVING_TIME(curLoc,task.location,driver);
+        double dist = MOVING_TIME(curLoc,task.location,driver);
+        double meters = MOVING_METERS(curLoc,task.location,driver);
         curTime += dist; 
         curTime = calNextAvailable(curTime, task, driver);
         curLoc = task.location;
-        eva -= dist * MOVE_TO_EVA_RATIO;
+        eva -= meters * METER_TO_EVA_RATIO;
         if (curTime > task.deadline) {
             eva -= task.pnlOneTime + task.pnlPerSec*(curTime-task.deadline);
         }
@@ -45,6 +48,19 @@ double ALG::calEva(CDriver &driver, unsigned int n, int tids[])
         }
     }
     return eva;
+}
+double ALG::calMeters(CDriver &driver, unsigned int n, int tids[])
+{
+    int curLoc = driver._loc;
+    double total = 0;
+    for (unsigned int i=0; i<n; i++) {
+        int iNext = tids[i];
+        CTask &task = tasks[iNext];
+        double meters = MOVING_METERS(curLoc,task.location,driver);
+        curLoc = task.location;
+        total += meters;
+    }
+    return total;
 }
 void ALG::calFTime(CDriver &driver, CTime fTimes[])
 {
@@ -67,6 +83,7 @@ void ALG::setAssignedTasks(CDriver &driver, unsigned int n, int bestSol[MAXNPARA
         driver._nOrder += (tasks[bestSol[i]].nextTask==NULL_ID);
     }
     driver._eva = calEva(driver, n, bestSol);
+    driver._meters = calMeters(driver, n, bestSol);
 }
 bool ALG::arrange_future_tasks(CDriver &driver)
 {
@@ -93,6 +110,7 @@ bool ALG::arrange_future_tasks(CDriver &driver)
         driver._assignedTasks[j] = idx;
     }
     driver._eva = calEva(driver, n, bestSol);
+    driver._meters = calMeters(driver, n, bestSol);
     return true;
 }
 
@@ -105,6 +123,7 @@ int ALG::formatSchedule(unsigned int nDriver)
         CScheduleItem si;
         si.did = drivers[i].did;
         si.eva = drivers[i]._eva;
+        si.meters = drivers[i]._meters;
         si.tids.clear();
         si.completeTime.clear();
         CTime fTimes[MAXNPARALLELTASKS];

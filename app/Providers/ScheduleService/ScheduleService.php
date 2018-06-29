@@ -256,7 +256,7 @@ class ScheduleService{
         return md5($signStr);
     }
     public function learn_map($areaId) {
-        $this->run($areaId);
+        //$this->run($areaId);
         return;
         $input = $this->reload($areaId);
         $task_dict = $input['task_dict'];
@@ -301,13 +301,14 @@ class ScheduleService{
         list($origin_loc_arr, $dest_loc_arr) = $map_sp->aggregate_locs($loc_dict);
         $target_mat = $this->get_target_dist_mat($origin_loc_arr, $dest_loc_arr,
             $loc_dict, $task_dict, $driver_dict);
-        $dist_mat_dict = $map_sp->get_dist_mat($target_mat);
-        $dist_mat = [];
+        list($dist_mat_dict, $mileage_mat_dict) = $map_sp->get_dist_mat($target_mat);
+        $dist_mat = []; $meters_mat = [];
         foreach ($origin_loc_arr as $i=>$start_loc)
             foreach ($origin_loc_arr as $j=>$end_loc) {
                 $dist_mat[$i][$j] = $dist_mat_dict[$start_loc][$end_loc] ?? -1;
+                $meters_mat[$i][$j] = $mileage_mat_dict[$start_loc][$end_loc] ?? -1;
             }
-        return $dist_mat;
+        return [$dist_mat, $meters_mat];
     }
     public function get_target_dist_mat($origin_loc_arr, $dest_loc_arr, $loc_dict, $task_dict, $driver_dict) {
         foreach ($driver_dict as $driver_id=>$driver) {
@@ -356,15 +357,12 @@ class ScheduleService{
             $timer['map'] = -microtime(true);
             $curTasks = $input['curTasks'];
             $loc_dict = $input['basic_loc_dict']; //will be enriched in the get_dist_mat call
-            $dist_mat = $this->get_dist_mat($loc_dict, $task_dict, $driver_dict);
+            list($dist_mat, $meters_mat) = $this->get_dist_mat($loc_dict, $task_dict, $driver_dict);
             $timer['map'] += microtime(true);
             $timer['schedule'] = -microtime(true);
-            $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $curTasks);
+            $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $meters_mat, $curTasks);
             $timer['schedule'] += microtime(true);
             $scheCache->set_schedules($schedules, time());
-            $uniCache->set('interData', [
-                'loc_dict'=>$loc_dict, 'task_dict'=>$task_dict, 'driver_dict'=>$driver_dict,
-            ]);
             $uniCache->set('signScheInput', $new_input_sign);
         }
         $schedules = $scheCache->get_schedules(null, $areaId);
@@ -373,7 +371,7 @@ class ScheduleService{
         Log::debug(__FUNCTION__.": timer:".json_encode($timer));
         return ['schedules'=>$schedules, 'new_order_assign'=>$unassigned_orders];
     }
-    public function ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $curTasks) {
+    public function ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $meters_mat, $curTasks) {
         foreach ($task_dict as $task_id=>$task) {
             $task_dict[$task_id]['location'] = $loc_dict[$task['locId']]['idx'];
         }
@@ -405,6 +403,7 @@ class ScheduleService{
             'tasks'=>$task_arr,
             'drivers'=>$driver_arr,
             'distMat'=>$dist_mat,
+            'meterMat'=>$meters_mat,
             'nLocations'=>$nLocations,
         ];
         $logCache = app()->make('cmoa_model_cache_service')->get('LogCache');
@@ -423,6 +422,7 @@ class ScheduleService{
                 'areaId'=>$driver['areaId'],
                 'score'=>$sche['eva'],
                 'passback_loc'=>$driver['passback_loc'],
+                'meters_after_fixtask'=>$sche['meters']??0,
                 'tasks'=>[]];
             if (!empty($curTasks[$driver['driver_id']]['tasks']))
                 $newDriverItem['tasks'] = $curTasks[$driver['driver_id']]['tasks'];

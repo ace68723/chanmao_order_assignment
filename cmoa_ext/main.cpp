@@ -9,6 +9,7 @@ bool parseInput(Php::Parameters &paras)
     vector<CTask> &tasks = ALG::tasks;
     int &nLocations = ALG::nLocations;
     double (&map)[MAXNLOCATIONS][MAXNLOCATIONS] = ALG::map;
+    double (&meterMap)[MAXNLOCATIONS][MAXNLOCATIONS] = ALG::meterMap;
     //CTime curTime;
     if (paras.size() != 1) {
         //cout<< "parse failed:" << reader.getFormattedErrorMessages() << endl;
@@ -55,6 +56,7 @@ bool parseInput(Php::Parameters &paras)
     for (int i=0; i<nLocations; i++) {
         for (int j=0; j<nLocations; j++) {
             map[i][j] = root["distMat"][i][j];
+            meterMap[i][j] = root["meterMat"][i][j];
         }
     }
     printf("read %lu drivers, %lu tasks:\n", drivers.size(), tasks.size());
@@ -78,6 +80,7 @@ Php::Value prepareOutput(int ret, vector<CScheduleItem> &schedule)
     {
         schdItem["did"] = schedule[i].did;
         schdItem["eva"] = schedule[i].eva;
+        schdItem["meters"] = schedule[i].meters;
         Php::Value taskList;
         Php::Value completeTime;
         for (unsigned int j=0; j<schedule[i].tids.size(); j++) {

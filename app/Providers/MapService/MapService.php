@@ -101,22 +101,22 @@ class MapService{
     public function get_dist_mat($target_mat) {
         $isHoliday=null;
         $caseId = $this->get_caseId($isHoliday);
-        list($dist_mat, $missed) = $this->dist_approx_from_cache($target_mat, $caseId);
+        list($dist_mat, $mileage_mat, $missed) = $this->dist_approx_from_cache($target_mat, $caseId);
         $this->verify($dist_mat,$missed,$caseId);
-        return $dist_mat;
+        return [$dist_mat,$mileage_mat];
     }
     private function dist_approx_from_cache($target_mat, $caseId) {
         $timer['total'] = $timer['get_mat'] = -microtime(true);
         list($dist_mat, $missed_pairs) = CacheMap::get_mat($target_mat);
-        CacheMap::extractCase($caseId, $dist_mat);
+        CacheMap::extractCase($caseId, $dist_mat, $mileage_mat);
         $timer['get_mat'] += microtime(true);
         if (empty($missed_pairs)) return [$dist_mat,$missed_pairs];
         $timer['approx_mat'] = -microtime(true);
-        CacheMap::approx_mat($missed_pairs, $dist_mat, $caseId);
+        CacheMap::approx_mat($missed_pairs, $dist_mat, $milage_mat, $caseId);
         $timer['approx_mat'] += microtime(true);
         $timer['total'] += microtime(true);
         Log::debug(__FUNCTION__.':timers:'.json_encode($timer));
-        return [$dist_mat,$missed_pairs];
+        return [$dist_mat,$mileage_mat,$missed_pairs];
     }
     private function verify(&$dist_mat, $missed, $caseId) {
         list($sel_origins, $sel_dests) = $this->approx_select($missed);
