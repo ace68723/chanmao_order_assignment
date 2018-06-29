@@ -14,7 +14,7 @@ vector<CScheduleItem> ALG::schedule;
 
 #define MOVING_TIME(i,j,driver) (map[i][j]*(driver).distFactor)
 #define MOVING_METERS(i,j,driver) (meterMap[i][j])
-#define METER_TO_EVA_RATIO 0.6
+#define METER_TO_EVA_RATIO 0.1
 
 CTime calNextAvailable(CTime tArrive, CTask &task, CDriver &driver)
 {
