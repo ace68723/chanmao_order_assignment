@@ -112,7 +112,7 @@ class MapService{
         $timer['get_mat'] += microtime(true);
         if (empty($missed_pairs)) return [$dist_mat,$missed_pairs];
         $timer['approx_mat'] = -microtime(true);
-        CacheMap::approx_mat($missed_pairs, $dist_mat, $milage_mat, $caseId);
+        CacheMap::approx_mat($missed_pairs, $dist_mat, $mileage_mat, $caseId);
         $timer['approx_mat'] += microtime(true);
         $timer['total'] += microtime(true);
         Log::debug(__FUNCTION__.':timers:'.json_encode($timer));
