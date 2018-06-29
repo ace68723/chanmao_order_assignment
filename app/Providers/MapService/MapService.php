@@ -110,7 +110,7 @@ class MapService{
         list($dist_mat, $missed_pairs) = CacheMap::get_mat($target_mat);
         CacheMap::extractCase($caseId, $dist_mat, $mileage_mat);
         $timer['get_mat'] += microtime(true);
-        if (empty($missed_pairs)) return [$dist_mat,$missed_pairs];
+        if (empty($missed_pairs)) return [$dist_mat, $mileage_mat, $missed_pairs];
         $timer['approx_mat'] = -microtime(true);
         CacheMap::approx_mat($missed_pairs, $dist_mat, $mileage_mat, $caseId);
         $timer['approx_mat'] += microtime(true);
