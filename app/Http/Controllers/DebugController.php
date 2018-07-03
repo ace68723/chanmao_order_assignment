@@ -71,16 +71,16 @@ class DebugController extends Controller
         ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
         $this->consts['REQUEST_PARAS']['modify_driver'] = [
             'driver_id'=>['checker'=>'is_string', 'required'=>true, ],
-            'driver_name'=>['checker'=>'is_string',],
+            'driver_name'=>['checker'=>'is_string', 'required'=>true, ],
             'hour'=>['checker'=>'is_string', 'required'=>true, ],
             'area'=>['checker'=>'is_string', 'required'=>true, ],
             'cell'=>['checker'=>'is_string', 'required'=>true, ],
-            'valid_from'=>['checker'=>'is_int', 'required'=>true, ],
-            'valid_to'=>['checker'=>'is_int', 'required'=>true, ],
+            'valid_from'=>['checker'=>'is_numeric', 'required'=>true, ],
+            'valid_to'=>['checker'=>'is_numeric', 'required'=>true, ],
+            'timestamp'=>['checker'=>'is_numeric', 'required'=>true, ],
             'lat'=>['checker'=>'is_numeric', 'required'=>true, ],
             'lng'=>['checker'=>'is_numeric', 'required'=>true, ],
             'workload'=>['checker'=>'is_int', 'required'=>true, ],
-            'timestamp'=>['checker'=>'is_numeric', 'required'=>true, ],
             'areaId'=>['checker'=>'is_int', 'required'=>true, ],
         ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
         $this->consts['REQUEST_PARAS']['learn_map'] = [
