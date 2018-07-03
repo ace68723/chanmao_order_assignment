@@ -71,17 +71,18 @@ class DebugController extends Controller
         ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
         $this->consts['REQUEST_PARAS']['modify_driver'] = [
             'driver_id'=>['checker'=>'is_string', 'required'=>true, ],
-            'driver_name'=>['checker'=>'is_string', 'required'=>true, ],
-            'hour'=>['checker'=>'is_string', 'required'=>true, ],
-            'area'=>['checker'=>'is_string', 'required'=>true, ],
-            'cell'=>['checker'=>'is_string', 'required'=>true, ],
-            'valid_from'=>['checker'=>'is_numeric', 'required'=>true, ],
-            'valid_to'=>['checker'=>'is_numeric', 'required'=>true, ],
-            'timestamp'=>['checker'=>'is_numeric', 'required'=>true, ],
-            'lat'=>['checker'=>'is_numeric', 'required'=>true, ],
-            'lng'=>['checker'=>'is_numeric', 'required'=>true, ],
-            'workload'=>['checker'=>'is_int', 'required'=>true, ],
-            'areaId'=>['checker'=>'is_int', 'required'=>true, ],
+            'driver_name'=>['checker'=>'is_string', 'required'=>false, ],
+            'hour'=>['checker'=>'is_string', 'required'=>false, ],
+            'area'=>['checker'=>'is_string', 'required'=>false, ],
+            'cell'=>['checker'=>'is_string', 'required'=>false, ],
+            'valid_from'=>['checker'=>'is_numeric', 'required'=>false, ],
+            'valid_to'=>['checker'=>'is_numeric', 'required'=>false, ],
+            'timestamp'=>['checker'=>'is_numeric', 'required'=>false, ],
+            'lat'=>['checker'=>'is_numeric', 'required'=>false, ],
+            'lng'=>['checker'=>'is_numeric', 'required'=>false, ],
+            'workload'=>['checker'=>'is_int', 'required'=>false, ],
+            'areaId'=>['checker'=>'is_int', 'required'=>false, ],
+            'expire_sec'=>['checker'=>'is_int', 'required'=>false, 'default_value'=>900],
         ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
         $this->consts['REQUEST_PARAS']['learn_map'] = [
             'area'=>[
@@ -204,7 +205,11 @@ class DebugController extends Controller
         $userObj = null;
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_model_cache_service')->get('DriverCache');
-        $ret = $sp->set_driver_modifier($la_paras['driver_id'], $la_paras);
+        $expire_sec = $la_paras['expire_sec'];
+        if (isset($la_paras['lat']) || isset($la_paras['lng'])) {
+            $expire_sec = min(900, $expire_sec);
+        }
+        $ret = $sp->set_driver_modifier($la_paras['driver_id'], $la_paras, $expire_sec);
         return $this->format_success_ret($ret);
     }
     public function get_drivers_info(Request $request) {

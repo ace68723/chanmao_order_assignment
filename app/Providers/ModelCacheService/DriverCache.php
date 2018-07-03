@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 class DriverCache{
     private $prefix;
     private $consts;
-    const DEBUG_KEEP_SEC = 3600*4;
+    const DEBUG_KEEP_SEC = 3600*24;
     const QUERY_INTERVAL_SEC = 60;
 
     public function __construct($root_prefix="") {
@@ -78,15 +78,27 @@ class DriverCache{
             $newDict[$driver['driver_id']] = $driver;
         }
         $modified = $this->get_driver_modifiers(array_keys($newDict));
+        $attrs = [
+            'driver_id','driver_name','hour','area','cell','valid_from','valid_to','timestamp',
+            'lat','lng','workload','areaId'
+        ];
         foreach($modified as $driver_id=>$driver) {
-            $newDict[$driver_id] = $driver;
+            if (isset($newDict[$driver_id])) {
+                foreach($attrs as $attr) if (isset($driver[$attr])){
+                    $newDict[$driver_id][$attr] = $driver[$attr];
+                }
+            }
+            else {
+                $newDict[$driver_id] = array_only($driver, $attrs);
+            }
         }
         return array_values($newDict);
     }
-    public function set_driver_modifier($driver_id, $driver) {
+    public function set_driver_modifier($driver_id, $driver, $expire_sec) {
         $key = $this->prefix."drModifier:".$driver_id;
         $driver['driver_id'] = $driver_id;
-        Redis::setex($key, self::DEBUG_KEEP_SEC, json_encode($driver));
+        $expire_sec = min(self::DEBUG_KEEP_SEC, $expire_sec);
+        Redis::setex($key, $expire_sec, json_encode($driver));
     }
     public function get_driver_modifiers($driver_ids) {
         $keys = [];
