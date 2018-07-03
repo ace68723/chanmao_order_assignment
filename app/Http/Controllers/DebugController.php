@@ -69,6 +69,20 @@ class DebugController extends Controller
                 'required'=>true,
             ],
         ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
+        $this->consts['REQUEST_PARAS']['modify_driver'] = [
+            'driver_id'=>['checker'=>'is_string', 'required'=>true, ],
+            'driver_name'=>['checker'=>'is_string',],
+            'hour'=>['checker'=>'is_string', 'required'=>true, ],
+            'area'=>['checker'=>'is_string', 'required'=>true, ],
+            'cell'=>['checker'=>'is_string', 'required'=>true, ],
+            'valid_from'=>['checker'=>'is_int', 'required'=>true, ],
+            'valid_to'=>['checker'=>'is_int', 'required'=>true, ],
+            'lat'=>['checker'=>'is_numeric', 'required'=>true, ],
+            'lng'=>['checker'=>'is_numeric', 'required'=>true, ],
+            'workload'=>['checker'=>'is_int', 'required'=>true, ],
+            'timestamp'=>['checker'=>'is_numeric', 'required'=>true, ],
+            'areaId'=>['checker'=>'is_int', 'required'=>true, ],
+        ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
         $this->consts['REQUEST_PARAS']['learn_map'] = [
             'area'=>[
                 'checker'=>['is_int', ],
@@ -185,6 +199,13 @@ class DebugController extends Controller
         //$target = $sch_sp->get_target_dist_mat($origin_loc_arr, $dest_loc_arr, $loc_dict, $task_dict, $driver_dict);
         $dist_mat = $sch_sp->get_dist_mat($loc_dict, $task_dict, $driver_dict);
         return $dist_mat;
+    }
+    public function modify_driver(Request $request) {
+        $userObj = null;
+        $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
+        $sp = app()->make('cmoa_model_cache_service')->get('DriverCache');
+        $ret = $sp->set_driver_modifier($la_paras['driver_id'], $la_paras);
+        return $this->format_success_ret($ret);
     }
     public function get_drivers_info(Request $request) {
         $userObj = null;

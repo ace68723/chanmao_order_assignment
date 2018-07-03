@@ -93,16 +93,14 @@ class CacheMap{
         }
     }
     static public function test() {
+        return;
         return self::check_dirty();
         $ret = [];
         $pairs = [];
         $pairs[] = ["43,-79", "43,-80"];
-        //$pairs[] = ["43.001,-79", "43,-80.001"];
         $pairs[] = ["43.01,-79", "43,-80.01"];
-        //foreach($pairs as $pair) {
         $pair = $pairs[0];
         $target_mat = [$pair[0]=>[$pair[1]=>0]];
-        //}
         foreach($pairs as $pair) {
             $cells = self::ExtLocToCells(...$pair);
             $tok = self::cellsToToken($cells);
