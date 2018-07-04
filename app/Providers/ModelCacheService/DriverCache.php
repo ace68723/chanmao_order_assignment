@@ -70,7 +70,7 @@ class DriverCache{
             $drivers[] = json_decode($rows, true);
         }
         //Log::debug("read ".count($drivers)." drivers for area $area:".json_encode(array_pluck($drivers,'driver_id')));
-        return $drivers;
+        return $this->local_modify($drivers);
     }
     public function local_modify($drivers) {
         $newDict = [];
