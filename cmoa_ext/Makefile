@@ -29,7 +29,7 @@ NAME				=	cmoa-ext
 #	one for each extension. Use this variable to specify this directory.
 #
 
-INI_DIR				=	/usr/local/etc/php/7.0/conf.d
+INI_DIR				=	/etc/php/7.0/apache2/conf.d
 
 
 #
