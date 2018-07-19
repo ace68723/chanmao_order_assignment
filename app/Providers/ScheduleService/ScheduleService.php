@@ -375,7 +375,7 @@ class ScheduleService{
         $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         $schedules = $scheCache->get_schedules(null, $areaId);
         $this->extract_assigns($unassigned_orders, $schedules);
-        Log::debug(__FUNCTION__.": new_orders:".json_encode($oids));
+        Log::debug(__FUNCTION__.": new_orders:".json_encode($unassigned_orders));
         return ['schedules'=>$schedules, 'new_order_assign'=>$unassigned_orders];
     }
     public function ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $meters_mat, $curTasks) {
