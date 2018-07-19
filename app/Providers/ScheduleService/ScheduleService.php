@@ -73,6 +73,7 @@ class ScheduleService{
                 $locId = 'rr-'.$order['rid'];
                 $locations[$locId] = [
                     'lat'=>$order['rr_lat'],'lng'=>$order['rr_lng'],'addr'=>$order['rr_addr'],
+                    'name'=>$order['rr_name'],'tel'=>$order['rr_tel'],
                 ];
                 $task_id = $order['oid']."P";
                 $tasks[$task_id] = [
@@ -95,6 +96,7 @@ class ScheduleService{
             $locId = 'ua-'.$order['uaid'];
             $locations[$locId] = [
                 'lat'=>$order['user_lat'],'lng'=>$order['user_lng'],'addr'=>$order['user_addr'],
+                'name'=>$order['user_name'],'tel'=>$order['user_tel'],
             ];
             $task_id = $order['oid']."D";
             $tasks[$task_id] = [
@@ -228,11 +230,15 @@ class ScheduleService{
         }
         return $idToInt;
     }
-    public function reload($areaId) {
-        $orderCache = app()->make('cmoa_model_cache_service')->get('OrderCache');
-        $driverCache = app()->make('cmoa_model_cache_service')->get('DriverCache');
-        $orders = $orderCache->get_orders();
-        $drivers = $driverCache->get_drivers($areaId);
+    public function reload($areaId, $orders=null, $drivers=null) {
+        if (is_null($orders)) {
+            $orderCache = app()->make('cmoa_model_cache_service')->get('OrderCache');
+            $orders = $orderCache->get_orders();
+        }
+        if (is_null($drivers)) {
+            $driverCache = app()->make('cmoa_model_cache_service')->get('DriverCache');
+            $drivers = $driverCache->get_drivers($areaId);
+        }
         list($driver_dict, $task_dict, $basic_loc_dict, $curTasks) = $this->preprocess($orders, $drivers, $areaId);
         Log::debug('preprocess returns '.count($driver_dict). ' drivers, '.
             count($task_dict).' tasks and '.count($basic_loc_dict).' locations');
@@ -256,7 +262,7 @@ class ScheduleService{
         return md5($signStr);
     }
     public function learn_map($areaId) {
-        $this->run($areaId);
+        $this->run_step($areaId);
         return;
         $input = $this->reload($areaId);
         $task_dict = $input['task_dict'];
@@ -288,13 +294,12 @@ class ScheduleService{
         }
         return $oids;
     }
-    private function apply_new(&$oids, $schedules) {
+    private function extract_assigns(&$oids, $schedules) {
         foreach($schedules as $driver_id=>$sche) {
             foreach($sche['tasks'] as $sche_task) if (isset($oids[$sche_task['oid']])) {
                 $oids[$sche_task['oid']] = $driver_id;
             }
         }
-        Log::debug(__FUNCTION__.": new_orders:".json_encode($oids));
     }
     public function get_dist_mat(&$loc_dict, $task_dict, $driver_dict) {
         $map_sp = app()->make('cmoa_map_service');
@@ -337,22 +342,13 @@ class ScheduleService{
         }
         return $target_mat;
     }
-    public function run($areaId, $force_redo = false) {
-        //return ['schedules'=>[], 'new_order_assign'=>[]];
-        $timer['total'] = $timer['reload'] = -microtime(true);
-        $input = $this->reload($areaId);
+    public function calc_and_update_schedule($input, $force_redo=false) {
+        $timer['total'] = -microtime(true);
         $task_dict = $input['task_dict'];
         $driver_dict = $input['driver_dict'];
-        $unassigned_orders = $this->find_unassigned($task_dict);
-        $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
-        if (count($task_dict)==0 || count($driver_dict)==0) {
-            $schedules = $scheCache->get_schedules(null, $areaId);
-            $this->apply_new($unassigned_orders, $schedules);
-            return ['schedules'=>$schedules, 'new_order_assign'=>$unassigned_orders];
-        }
-        $timer['reload'] += microtime(true);
         $uniCache = app()->make('cmoa_model_cache_service')->get('UniCache');
         $new_input_sign = $this->calc_input_sign($input);
+        $schedules = null;
         if ($force_redo || $uniCache->get('signScheInput') != $new_input_sign) {
             $timer['map'] = -microtime(true);
             $curTasks = $input['curTasks'];
@@ -362,13 +358,24 @@ class ScheduleService{
             $timer['schedule'] = -microtime(true);
             $schedules = $this->ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $meters_mat, $curTasks);
             $timer['schedule'] += microtime(true);
+            $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
             $scheCache->set_schedules($schedules, time());
             $uniCache->set('signScheInput', $new_input_sign);
         }
-        $schedules = $scheCache->get_schedules(null, $areaId);
-        $this->apply_new($unassigned_orders, $schedules);
         $timer['total'] += microtime(true);
         Log::debug(__FUNCTION__.": timer:".json_encode($timer));
+        return $schedules;
+    }
+    public function run_step($areaId, $orders = null, $drivers = null) {
+        $input = $this->reload($areaId, $orders, $drivers);
+        $unassigned_orders = $this->find_unassigned($input['task_dict']);
+        if (count($input['task_dict'])>0 && count($input['driver_dict'])>0) {
+            $this->calc_and_update_schedule($input);
+        }
+        $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
+        $schedules = $scheCache->get_schedules(null, $areaId);
+        $this->extract_assigns($unassigned_orders, $schedules);
+        Log::debug(__FUNCTION__.": new_orders:".json_encode($oids));
         return ['schedules'=>$schedules, 'new_order_assign'=>$unassigned_orders];
     }
     public function ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $meters_mat, $curTasks) {
@@ -436,7 +443,7 @@ class ScheduleService{
                         'locId'=>$task_arr[$tid]['locId'],
                     ];
                     $newTaskItem['location'] = array_only($loc_dict[$newTaskItem['locId']],
-                        ['lat','lng','addr','adjustLatLng','gridId']);
+                        ['lat','lng','addr','adjustLatLng','gridId','name','tel']);
                     $newDriverItem['tasks'][] = $newTaskItem;
                 }
             }

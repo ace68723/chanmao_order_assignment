@@ -39,7 +39,7 @@ class ScheduleController extends Controller
         $userObj = null;//$request->user('custom_token');
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_schedule_service');
-        $ret = $sp->run($la_paras['area']);
+        $ret = $sp->run_step($la_paras['area']);
         return $this->format_success_ret($ret);
     }
     public function reload(Request $request){
