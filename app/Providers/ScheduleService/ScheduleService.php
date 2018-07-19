@@ -73,7 +73,6 @@ class ScheduleService{
                 $locId = 'rr-'.$order['rid'];
                 $locations[$locId] = [
                     'lat'=>$order['rr_lat'],'lng'=>$order['rr_lng'],'addr'=>$order['rr_addr'],
-                    'name'=>$order['rr_name'],'tel'=>$order['rr_tel'],
                 ];
                 $task_id = $order['oid']."P";
                 $tasks[$task_id] = [
@@ -96,7 +95,6 @@ class ScheduleService{
             $locId = 'ua-'.$order['uaid'];
             $locations[$locId] = [
                 'lat'=>$order['user_lat'],'lng'=>$order['user_lng'],'addr'=>$order['user_addr'],
-                'name'=>$order['user_name'],'tel'=>$order['user_tel'],
             ];
             $task_id = $order['oid']."D";
             $tasks[$task_id] = [
@@ -443,7 +441,7 @@ class ScheduleService{
                         'locId'=>$task_arr[$tid]['locId'],
                     ];
                     $newTaskItem['location'] = array_only($loc_dict[$newTaskItem['locId']],
-                        ['lat','lng','addr','adjustLatLng','gridId','name','tel']);
+                        ['lat','lng','addr','adjustLatLng','gridId',]);
                     $newDriverItem['tasks'][] = $newTaskItem;
                 }
             }
