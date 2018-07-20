@@ -93,14 +93,7 @@ class CacheMap{
         }
     }
     static public function test() {
-        return;
-        return self::check_dirty();
-        $ret = [];
-        $pairs = [];
-        $pairs[] = ["43,-79", "43,-80"];
-        $pairs[] = ["43.01,-79", "43,-80.01"];
-        $pair = $pairs[0];
-        $target_mat = [$pair[0]=>[$pair[1]=>0]];
+        return self::dump_decodekey();
         foreach($pairs as $pair) {
             $cells = self::ExtLocToCells(...$pair);
             $tok = self::cellsToToken($cells);
@@ -327,6 +320,14 @@ class CacheMap{
                 yield [$keys[$i], json_decode($item, true)];
             }
         } while ($cursor);
+    }
+    static public function dump_decodekey() {
+        $all_tok = self::scan();
+        $ret = [];
+        foreach($all_tok as $tok) {
+            $ret[$tok] = self::TokenToExtLoc($tok, '%.7f,%.7f');
+        }
+        return $ret;
     }
     static public function check_dirty() {
         $all_item = self::scan_item();
