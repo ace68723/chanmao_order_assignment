@@ -7,7 +7,7 @@ use App\Exceptions\CmException;
 
 class LogCache{
     private $prefix;
-    const LOG_KEEP_SECS = 24*3600*7;
+    const LOG_KEEP_SECS = 24*3600*14;
 
     public function __construct($root_prefix="") {
         $this->prefix = $root_prefix.class_basename(__CLASS__).":";
@@ -17,7 +17,7 @@ class LogCache{
         Log::debug('add log cache '.$key.':'.$curTime);
         $fullkey = $this->prefix."zset:".$key;
         Redis::zadd($fullkey, $curTime, json_encode($data));
-        #Redis::zremrangebyscore($fullkey, '-inf', $curTime-self::LOG_KEEP_SECS);
+        Redis::zremrangebyscore($fullkey, '-inf', $curTime-self::LOG_KEEP_SECS);
     }
     public function get_at($key, $timestamp) {
         $fullkey = $this->prefix."zset:".$key;
