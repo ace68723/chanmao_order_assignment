@@ -111,7 +111,7 @@ class DebugController extends Controller
     }
     public function get_schedule(Request $request){
         $userObj = null;
-        $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
+        $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj, true);
         $sp = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         if ($la_paras['driver_id']<=0) $la_paras['driver_id'] = null;
         $ret = $sp->get_schedules($la_paras['driver_id']);

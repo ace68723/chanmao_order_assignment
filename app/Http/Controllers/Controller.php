@@ -201,7 +201,7 @@ headerStr;
         }
         return $ret;
     }
-    public function parse_parameters(Request $request, $api_name, $callerInfoObj = null) {
+    public function parse_parameters(Request $request, $api_name, $callerInfoObj = null, $bSilent = false) {
         $api_paras_def = $this->consts['REQUEST_PARAS'][$api_name] ?? null;
         if (is_null($api_paras_def))
             throw new CmException('SYSTEM_ERROR', 'EMPTY_API_DEFINITION for '.$api_name);
@@ -210,7 +210,9 @@ headerStr;
             //$payload = ($api_name != 'login') ? json_encode($la_paras) : "hide for login";
             $payload = json_encode(array_except($la_paras,['password','pwd']));
             $caller_str = $this->format_caller_str($request, $callerInfoObj);
-            Log::DEBUG($caller_str . " called ".$api_name." payload_noPWD:". $payload);
+            if (!$bSilent) {
+                Log::DEBUG($caller_str . " called ".$api_name." payload_noPWD:". $payload);
+            }
         }
         catch (\Exception $e) {
             Log::DEBUG("Exception in logging parse_parameters:". $e->getMessage());
