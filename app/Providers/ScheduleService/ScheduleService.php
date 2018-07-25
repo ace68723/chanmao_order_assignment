@@ -40,21 +40,12 @@ class ScheduleService{
     }
 
     // check consistency, remove unnecessary tasks/driver/locations, convert to the input for module
-    private function preprocess($orders, $drivers, $areaId) {
+    private function preprocess($orders, $drivers) {
         $curTime = time();
         $tasks = [];
         $locations = [];
         $workload = [];
-        $driverArea = [];
-        foreach($drivers as $driver) { $driverArea[$driver['driver_id']] = $driver['areaId'];}
         foreach($orders as $order) {
-            $order = (array)$order;
-            if ($order['area'] != $areaId) {
-                if (empty($order['driver_id'])) continue;
-                $driver_id = $order['driver_id'];
-                if (!isset($driverArea[$driver_id]) || $driverArea[$driver_id] != $areaId)
-                    continue;
-            }
             $prevTask = null;
             if (!empty($order['driver_id'])) {
                 //Log::debug("order ".$order['oid']." assigned to driver ".$order['driver_id']);
@@ -237,7 +228,8 @@ class ScheduleService{
             $driverCache = app()->make('cmoa_model_cache_service')->get('DriverCache');
             $drivers = $driverCache->get_drivers($areaId);
         }
-        list($driver_dict, $task_dict, $basic_loc_dict, $curTasks) = $this->preprocess($orders, $drivers, $areaId);
+        $orders = AreaUtil::area_filter($orders, $drivers, $areaId);
+        list($driver_dict, $task_dict, $basic_loc_dict, $curTasks) = $this->preprocess($orders, $drivers);
         Log::debug('preprocess returns '.count($driver_dict). ' drivers, '.
             count($task_dict).' tasks and '.count($basic_loc_dict).' locations');
         return ['task_dict'=>$task_dict, 'driver_dict'=>$driver_dict, 'basic_loc_dict'=>$basic_loc_dict,
