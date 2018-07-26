@@ -39,6 +39,14 @@ class DebugController extends Controller
                 ],
             ],
         ];
+        $this->consts['REQUEST_PARAS']['get_driver_modifiers'] = [
+            'driver_id'=>[
+                'checker'=>['is_int', ],
+                'required'=>false,
+                'description'=> '-1/null to get all',
+                'default_value'=> -1,
+            ],
+        ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
         $this->consts['REQUEST_PARAS']['get_schedule'] = [
             'driver_id'=>[
                 'checker'=>['is_int', ],
@@ -210,6 +218,17 @@ class DebugController extends Controller
             $expire_sec = min(900, $expire_sec);
         }
         $ret = $sp->set_driver_modifier($la_paras['driver_id'], $la_paras, $expire_sec);
+        return $this->format_success_ret($ret);
+    }
+    public function get_driver_modifiers(Request $request) {
+        $userObj = null;
+        $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
+        $sp = app()->make('cmoa_model_cache_service')->get('DriverCache');
+        $driver_ids = null;
+        if ($la_paras['driver_id'] != -1) {
+            $driver_ids = [$la_paras['driver_id']];
+        }
+        $ret = $sp->get_driver_modifiers($driver_ids);
         return $this->format_success_ret($ret);
     }
     public function get_drivers_info(Request $request) {

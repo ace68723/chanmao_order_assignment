@@ -29,7 +29,7 @@ class AreaUtil{
                 if (empty($rect)) continue;
                 if (!self::is_in_rect($order['rr_lat'],$order['rr_lng'],$rect) ||
                     !self::is_in_rect($order['user_lat'],$order['user_lng'],$rect,
-                        self::USR_SLACK_LAT,self::USER_SLACK_LNG)
+                        self::USER_SLACK_LAT,self::USER_SLACK_LNG)
                     )
                     continue;
             }

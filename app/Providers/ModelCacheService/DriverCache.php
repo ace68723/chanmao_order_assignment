@@ -100,12 +100,18 @@ class DriverCache{
         $expire_sec = min(self::DEBUG_KEEP_SEC, $expire_sec);
         Redis::setex($key, $expire_sec, json_encode($driver));
     }
-    public function get_driver_modifiers($driver_ids) {
+    public function get_driver_modifiers($driver_ids = null) {
         $keys = [];
-        foreach($driver_ids as $driver_id) {
-            $keys[] = $this->prefix."drModifier:".$driver_id;
+        if (is_array($driver_ids)) {
+            foreach($driver_ids as $driver_id) {
+                $keys[] = $this->prefix."drModifier:".$driver_id;
+            }
         }
-        $ret = Redis::mget(...$keys);
+        else {
+            $keys = Redis::keys($this->prefix."drModifier:*");
+        }
+        if (empty($keys)) return [];
+        $ret = Redis::mget($keys);
         $data = [];
         foreach($ret as $i=>$rec) if (!empty($rec)){
             $driver = json_decode($rec, true);
