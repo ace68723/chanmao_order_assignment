@@ -24,10 +24,10 @@ $router->group(['prefix'=>'api/v1/schedule', 'middleware'=>'auth:custom_token'],
         $router->post('/'.$api_name.'/', ['uses'=>'ScheduleController@'.$api_name]);
     }
     $api_names = [
-        'get_drivers', 'get_orders', 'get_schedule', 'get_log', 'get_unicache','get_driver_modifiers',
+        'get_drivers', 'get_orders', 'get_schedule', 'get_log', 'get_unicache',
         'test_map', 'learn_map', 'get_map_caseId', 'get_dist_mat',
         'calc_heat_map','get_heat_map','reset_heat_map',
-        'modify_driver',
+        'modify_driver', 'get_driver_modifiers', 'get_areas',
         'get_drivers_info', 'debug_call',
     ];
     foreach($api_names as $api_name) {

@@ -103,6 +103,11 @@ class DebugController extends Controller
             throw new CmException('SYSTEM_ERROR', "ERROR SETTING IN API SCHEMA");
     }
 
+    public function get_areas(Request $request){
+        $sche_sp = app()->make('cmoa_schedule_service');
+        $ret = $sche_sp->get_areas();
+        return $this->format_success_ret($ret);
+    }
     public function get_orders(Request $request){
         $userObj = null;
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);

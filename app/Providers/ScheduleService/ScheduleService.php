@@ -38,6 +38,9 @@ class ScheduleService{
             8 => 'E_CONFLICT_SETTING',
         ];
     }
+    public function get_areas() {
+        return AreaUtil::AREA_RECT;
+    }
 
     // check consistency, remove unnecessary tasks/driver/locations, convert to the input for module
     private function preprocess($orders, $drivers) {

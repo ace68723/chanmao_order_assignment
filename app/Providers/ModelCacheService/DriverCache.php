@@ -97,6 +97,7 @@ class DriverCache{
     public function set_driver_modifier($driver_id, $driver, $expire_sec) {
         $key = $this->prefix."drModifier:".$driver_id;
         $driver['driver_id'] = $driver_id;
+        $driver['_expire_at'] = time()+$expire_sec;
         $expire_sec = min(self::DEBUG_KEEP_SEC, $expire_sec);
         Redis::setex($key, $expire_sec, json_encode($driver));
     }
