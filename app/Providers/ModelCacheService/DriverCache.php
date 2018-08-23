@@ -31,17 +31,36 @@ class DriverCache{
     }
     private function get_drivers_from_redis() {
         $redis = Redis::connection(); //considering as remote redis, may use another db
-        $result = $redis->hgetall("LastLoc", time());
-        Log::debug('working:'.gettype($result).':'.json_decode($result));
+        $result = $redis->hgetall("LastLoc");
+        foreach($result as $driver_id=>$json_str) {
+            $v = json_decode($json_str, true);
+            if ($v['latlng'] == "0,0") {
+                Log::debug(__FUNCTION__.":skipping error latlng. driver_id:".$driver_id);
+                continue;
+            }
+            $latlng = explode(',',$v['latlng']);
+            $result[$driver_id] = ['timestamp'=>$v['timestamp'], 'lat'=>$latlng[0], 'lng'=>$latlng[1]];
+        }
+        //Log::debug('working:'.gettype($result).':'.json_decode($result)); //array with "driver_id":"json_str"
+        return $result;
     }
     private function get_drivers_from_api() {
-        $this->get_drivers_from_redis();
+        $redisLocs = $this->get_drivers_from_redis();
         $curTime = time();
         $timer = -microtime(true);
         $data = do_curl('https://www.chanmao.ca/index.php?r=MobAly10/DriverLoc', 'GET');
         $drivers = $data['drivers']??[];
         foreach($drivers as &$dr) {
             $dr['areaId'] = $this->consts['AREACODE_MAP'][$dr['area']] ?? -1;
+            $driver_id = $dr['driver_id'];
+            if (isset($redisLocs[$driver_id])) {
+                if ($redisLocs[$driver_id]['timestamp'] > $dr['timestamp']) {
+                    foreach(['timestamp','lat','lng'] as $attr) {
+                        $dr[$attr] = $redisLocs[$driver_id][$attr];
+                    }
+                    Log::debug('applied new loc for driver:'.$driver_id);
+                }
+            }
         }
         $timer += microtime(true);
         Log::debug("got ".count($drivers)." drivers from remote API.". " takes:".$timer." secs");
