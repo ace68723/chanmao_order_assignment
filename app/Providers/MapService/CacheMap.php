@@ -420,6 +420,7 @@ class CacheMap{
                 $id = bindec($strs[$i]);
             }
             else {
+                //this code assumes running on 64bit machines
                 $id = bindec(substr($strs[$i],1))+PHP_INT_MIN;
             }
             $cells[] = new S2\S2CellId($id);

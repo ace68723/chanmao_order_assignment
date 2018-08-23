@@ -29,7 +29,13 @@ class DriverCache{
                 $this->consts['AREACODE_MAP'][$v] = $k;
         }
     }
-    public function get_drivers_from_api() {
+    private function get_drivers_from_redis() {
+        $redis = Redis::connection(); //considering as remote redis, may use another db
+        $result = $redis->hgetall("LastLoc", time());
+        Log::debug('working:'.gettype($result).':'.json_decode($result));
+    }
+    private function get_drivers_from_api() {
+        $this->get_drivers_from_redis();
         $curTime = time();
         $timer = -microtime(true);
         $data = do_curl('https://www.chanmao.ca/index.php?r=MobAly10/DriverLoc', 'GET');
