@@ -31,8 +31,9 @@ class DriverCache{
     }
     private function get_drivers_from_redis() {
         $redis = Redis::connection(); //considering as remote redis, may use another db
-        $result = $redis->hgetall("LastLoc");
-        foreach($result as $driver_id=>$json_str) {
+        $raw_result = $redis->hgetall("LastLoc");
+        $result = [];
+        foreach($raw_result as $driver_id=>$json_str) {
             $v = json_decode($json_str, true);
             if ($v['latlng'] == "0,0") {
                 Log::debug(__FUNCTION__.":skipping error latlng. driver_id:".$driver_id);
