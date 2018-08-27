@@ -13,6 +13,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->singleton('curl_service', function ($app) {
+            return new CurlService(); // You can even put some params here
+        });
     }
 }

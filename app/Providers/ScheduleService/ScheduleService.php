@@ -294,6 +294,24 @@ class ScheduleService{
             }
         }
     }
+    public function test() {
+        return $this->apply_assigns([]);
+    }
+    private function apply_assigns($order_assigns) {
+        $payload = [
+            "oid"=>"1",
+            "task"=>"assign",
+            "value"=>"6",
+            "comment"=>"testing"
+        ];
+        $header = [
+            "author-token"=>"",
+        ];
+        $curl = app()->make('curl_service');
+        $result = $curl->do_curl('POST','https://chanmao.ca/index.php?r=MobMonitor/OrderChange', $payload, $header);
+        //foreach($order_assigns as $oid=>$driver_id) {
+        //}
+    }
     public function get_dist_mat(&$loc_dict, $task_dict, $driver_dict) {
         $map_sp = app()->make('cmoa_map_service');
         list($origin_loc_arr, $dest_loc_arr) = $map_sp->aggregate_locs($loc_dict);

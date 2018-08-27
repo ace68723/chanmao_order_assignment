@@ -170,6 +170,8 @@ class DebugController extends Controller
         return $this->format_success_ret($ret);
     }
     public function test_map(Request $request) {
+        $sp = app()->make('cmoa_schedule_service');
+        return $sp->test();
         $map_sp = app()->make('cmoa_map_service');
         $ret = $map_sp->test();
         return $this->format_success_ret($ret);
