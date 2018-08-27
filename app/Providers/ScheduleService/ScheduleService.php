@@ -298,20 +298,24 @@ class ScheduleService{
         return $this->apply_assigns([]);
     }
     private function apply_assigns($order_assigns) {
-        $payload = [
-            "oid"=>"1",
-            "task"=>"assign",
-            "value"=>"6",
-            "comment"=>"testing"
-        ];
         $header = [
             "Authortoken"=>"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIxMTExOSIsImV4cGlyZWQiOjE1NDE0MDQ4MDAsImV4cGlyZWRfdGltZSI6MTU0MTQwNDgwMCwibGFzdGxvZ2luIjoxNTM1MzkxMTA1fQ.0vDTWQJBzbxKGnDH0XzBapMdnpE-qbI3xQpZQuYg4K8",
         ];
         $curl = app()->make('curl_service');
-        $result = $curl->do_curl('POST','https://chanmao.ca/index.php?r=MobMonitor/OrderChange', $payload, $header);
-        Log::debug(json_encode($result));
-        //foreach($order_assigns as $oid=>$driver_id) {
-        //}
+        foreach($order_assigns as $oid=>$driver_id) {
+            if (!in_array($driver_id, [6,88])) continue;
+            $payload = [
+                "oid"=>$oid,
+                "task"=>"assign",
+                "value"=>$driver_id,
+                "comment"=>"testing auto assign"
+            ];
+            Log::debug('applying assignment:'.$oid.'=>'.$driver_id);
+            $result = $curl->do_curl('POST','https://chanmao.ca/index.php?r=MobMonitor/OrderChange', $payload, $header, 30, null, true);
+            if (($result['ev_result'] ?? 1) != 0) {
+                Log::debug('apply failed:'.json_encode($result));
+            }
+        }
     }
     public function get_dist_mat(&$loc_dict, $task_dict, $driver_dict) {
         $map_sp = app()->make('cmoa_map_service');
@@ -388,6 +392,7 @@ class ScheduleService{
         $schedules = $scheCache->get_schedules(null, $areaId);
         $this->extract_assigns($unassigned_orders, $schedules);
         Log::debug(__FUNCTION__.": new_orders:".json_encode($unassigned_orders));
+        $this->apply_assigns($unassigned_orders);
         return ['schedules'=>$schedules, 'new_order_assign'=>$unassigned_orders];
     }
     public function ext_wrapper($task_dict, $driver_dict, $loc_dict, $dist_mat, $meters_mat, $curTasks) {
