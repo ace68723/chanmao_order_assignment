@@ -62,7 +62,7 @@ class CurlService{
         }
         //返回结果
         if($data){
-            if (!$bSilent) Log::debug('curl_response'.$data);
+            if (!$bSilent) Log::debug('curl_response:'.$data);
             curl_close($ch);
             return json_decode($data, true);
         } else {
