@@ -85,6 +85,7 @@ $app->register(App\Providers\MapService\MapServiceProvider::class);
 $app->register(App\Providers\ModelCacheService\ModelCacheServiceProvider::class);
 $app->register(App\Providers\UserAuthService\UserAuthServiceProvider::class);
 $app->register(App\Providers\AuthServiceProvider::class);
+$app->register(App\Providers\AppServiceProvider::class);
 
 $app->register(Illuminate\Redis\RedisServiceProvider::class);
 /*

@@ -305,10 +305,11 @@ class ScheduleService{
             "comment"=>"testing"
         ];
         $header = [
-            "author-token"=>"",
+            "Authortoken"=>"",
         ];
         $curl = app()->make('curl_service');
         $result = $curl->do_curl('POST','https://chanmao.ca/index.php?r=MobMonitor/OrderChange', $payload, $header);
+        Log::debug(json_encode($result));
         //foreach($order_assigns as $oid=>$driver_id) {
         //}
     }

@@ -58,13 +58,11 @@ class CurlService{
         $data = curl_exec($ch);
         if (!$bSilent) {
             $info = curl_getinfo($ch);
-            var_dump($info['request_header']);
+            Log::debug(json_encode($info['request_header']));
         }
         //返回结果
         if($data){
-            if (!$bSilent) {
-                var_dump($data);
-            }
+            if (!$bSilent) Log::debug('curl_response'.$data);
             curl_close($ch);
             return json_decode($data, true);
         } else {
@@ -76,5 +74,5 @@ class CurlService{
                 throw new \Exception("curl error:". $errmsg, $error);
             }
         }
-    } 
+    }
 }
