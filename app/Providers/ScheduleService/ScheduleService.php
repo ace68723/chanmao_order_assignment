@@ -302,12 +302,13 @@ class ScheduleService{
             "Authortoken"=>"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIxMTExOSIsImV4cGlyZWQiOjE1NDE0MDQ4MDAsImV4cGlyZWRfdGltZSI6MTU0MTQwNDgwMCwibGFzdGxvZ2luIjoxNTM1MzkxMTA1fQ.0vDTWQJBzbxKGnDH0XzBapMdnpE-qbI3xQpZQuYg4K8",
         ];
         $curl = app()->make('curl_service');
+        $wid_map = ['6'=>'238', '88'=>'102'];
         foreach($order_assigns as $oid=>$driver_id) {
             if (!in_array($driver_id, [6,88])) continue;
             $payload = [
                 "oid"=>$oid,
                 "task"=>"assign",
-                "value"=>$driver_id,
+                "value"=>$wid_map[$driver_id],
                 "comment"=>"testing auto assign"
             ];
             Log::debug('applying assignment:'.$oid.'=>'.$driver_id);
