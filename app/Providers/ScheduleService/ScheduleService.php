@@ -222,10 +222,54 @@ class ScheduleService{
         }
         return $idToInt;
     }
+    private function assign_test_orders($orders) {
+        $test_orders = [];
+        foreach ($orders as $order) {
+            if ($orders['rid'] == 5) $test_orders[]=$order;
+        }
+        if (empty($test_orders)) return;
+        $schedules = [];
+        $driver_id = 6;
+        $unassigned_orders = [];
+        $newDriverItem = [
+            'driver_id'=>$driver_id,
+            'areaId'=>1,
+            'score'=>1,
+            'passback_loc'=>['43','-79'],
+            'meters_after_fixtask'=>0,
+            'tasks'=>[]
+        ];
+        foreach($test_orders as $order) {
+            if (!in_array($order['status'], [20,30])) continue;
+            if ($order['status'] != 30) {
+                $unassigned_orders[$order['oid']] = $driver_id;
+                $newDriverItem['tasks'][] = [
+                    'task_id'=>$order['oid'].'P',
+                    'oid'=>$order['oid'],
+                    'deadline'=>1,
+                    'completeTime'=>1,
+                ];
+            }
+            $newDriverItem['tasks'][] = [
+                'task_id'=>$order['oid'].'D',
+                'oid'=>$order['oid'],
+                'deadline'=>1,
+                'completeTime'=>1,
+            ];
+        }
+        $schedules[$driver_id] = $newDriverItem;
+        $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
+        $scheCache->set_schedules($schedules, time());
+        $this->apply_assigns($unassigned_orders);
+    }
     public function reload($areaId, $orders=null, $drivers=null) {
         if (is_null($orders)) {
             $orderCache = app()->make('cmoa_model_cache_service')->get('OrderCache');
-            $orders = $orderCache->get_orders();
+            $allow_test_orders = true;
+            $orders = $orderCache->get_orders($allow_test_orders);
+            if ($allow_test_orders) {
+                $this->assign_test_orders($orders);
+            }
         }
         if (is_null($drivers)) {
             $driverCache = app()->make('cmoa_model_cache_service')->get('DriverCache');

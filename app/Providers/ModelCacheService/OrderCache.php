@@ -26,7 +26,7 @@ class OrderCache{
             ['ob.created', '>', $dt->format('Y-m-d H:i:s')],
             ['ob.dltype','>=', 1], ['ob.dltype','<=', 3], ['ob.dltype', '!=', 2],
             ['rl.area','=',0],
-            ['ob.rid','!=',5], //escape test merchant
+            //['ob.rid','!=',5], //escape test merchant
         ];
         if (!is_null($area) && $area != -1) {
             $whereCond[] = ['rb.area','=',$area];
@@ -53,11 +53,11 @@ class OrderCache{
         Redis::setex($this->prefix."updatedAt", self::DEBUG_KEEP_SEC, time());
         foreach($orders as $order) {
             $key = $this->prefix."order:".$order->oid;
-            Redis::setex($key, self::QUERY_INTERVAL_SEC, json_encode($order));
-            //we do not del keys we let keys expire
+            Redis::setex($key, 2+self::QUERY_INTERVAL_SEC, json_encode($order));
+            //plus 2 is for the rare case of expire before reload
         }
     }
-    public function get_orders() {
+    public function get_orders($allow_test_orders = false) {
         $updatedAt = Redis::get($this->prefix. "updatedAt");
         $updatedAt = is_null($updatedAt) ? 0 : (int)$updatedAt;
         $curTime = time();
@@ -69,7 +69,9 @@ class OrderCache{
         $rets = Redis::mget($keys);
         $orders = [];
         foreach($rets as $rows) if (!is_null($rows)) {
-            $orders[] = json_decode($rows, true);
+            $order = json_decode($rows, true);
+            if (!$allow_test_orders && $order['rid'] == 5) continue;
+            $orders[] = $order;
         }
         //Log::debug("read ".count($orders)." orders:".json_encode(array_pluck($orders,'oid')));
         return $orders;
