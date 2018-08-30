@@ -224,10 +224,14 @@ class ScheduleService{
     }
     private function assign_test_orders($orders) {
         $test_orders = [];
+        $normal_orders = [];
         foreach ($orders as $order) {
-            if ($orders['rid'] == 5) $test_orders[]=$order;
+            if ($orders['rid'] == 5)
+                $test_orders[] = $order;
+            else
+                $normal_orders[] = $order;
         }
-        if (empty($test_orders)) return;
+        if (empty($test_orders)) return $normal_orders;
         $schedules = [];
         $driver_id = 6;
         $unassigned_orders = [];
@@ -261,15 +265,14 @@ class ScheduleService{
         $scheCache = app()->make('cmoa_model_cache_service')->get('ScheduleCache');
         $scheCache->set_schedules($schedules, time());
         $this->apply_assigns($unassigned_orders);
+        return $normal_orders;
     }
     public function reload($areaId, $orders=null, $drivers=null) {
         if (is_null($orders)) {
             $orderCache = app()->make('cmoa_model_cache_service')->get('OrderCache');
             $allow_test_orders = true;
             $orders = $orderCache->get_orders($allow_test_orders);
-            if ($allow_test_orders) {
-                $this->assign_test_orders($orders);
-            }
+            if ($allow_test_orders) $orders = $this->assign_test_orders($orders);
         }
         if (is_null($drivers)) {
             $driverCache = app()->make('cmoa_model_cache_service')->get('DriverCache');
