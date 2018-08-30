@@ -226,7 +226,7 @@ class ScheduleService{
         $test_orders = [];
         $normal_orders = [];
         foreach ($orders as $order) {
-            if ($orders['rid'] == 5)
+            if ($order['rid'] == 5)
                 $test_orders[] = $order;
             else
                 $normal_orders[] = $order;
