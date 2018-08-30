@@ -245,8 +245,9 @@ class ScheduleService{
         ];
         foreach($test_orders as $order) {
             if (!in_array($order['status'], [20,30])) continue;
-            if ($order['status'] != 30) {
+            if (empty($order['driver_id']))
                 $unassigned_orders[$order['oid']] = $driver_id;
+            if ($order['status'] != 30) {
                 $newDriverItem['tasks'][] = [
                     'task_id'=>$order['oid'].'P',
                     'oid'=>$order['oid'],
