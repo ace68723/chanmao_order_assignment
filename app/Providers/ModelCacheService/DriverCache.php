@@ -153,12 +153,11 @@ class DriverCache{
         $res = $sql->get();
         $dict = [];
         foreach($res as $item) {
-            $drict[$item->driver_id] = $item->wid;
+            $dict[$item->driver_id] = $item->wid;
         }
-        return $res;
+        return $dict;
     }
     public function get_driver_notify_id($driver_ids) {
-        $all_hit = true;;
         $dict = [];
         $res = Redis::get($this->prefix."widObj");
         $cached = empty($res)? [] : json_decode($res,true);
