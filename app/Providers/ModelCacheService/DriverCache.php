@@ -151,10 +151,24 @@ class DriverCache{
             ->select('drb.driver_id', 'drb.wid')
             ->whereIn('drb.driver_id',$driver_ids);
         $res = $sql->get();
+        $dict = [];
+        foreach($res as $item) {
+            $drict[$item->driver_id] = $item->wid;
+        }
         return $res;
     }
     public function get_driver_notify_id($driver_ids) {
-        return $this->reload_driver_notify_id($driver_ids);
+        $all_hit = true;;
+        $dict = [];
+        $res = Redis::get($this->prefix."widObj");
+        $cached = empty($res)? [] : json_decode($res,true);
+        $dict = array_only($cached, $driver_ids);
+        if (count($dict)<count($driver_ids)) {
+            $data = $this->reload_driver_notify_id($driver_ids);
+            Redis::set($this->prefix."widObj", json_encode($data));
+            $dict = array_only($data, $driver_ids);
+        }
+        return $dict;
     }
     public function get_drivers_info($driver_ids) {
         $ids = array_pluck($driver_ids,'driver_id');
