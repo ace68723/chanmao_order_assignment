@@ -146,6 +146,16 @@ class DriverCache{
         }
         return $data;
     }
+    public function reload_driver_notify_id($driver_ids) {
+        $sql = DB::table('cm_driver_base as drb')
+            ->select('drb.driver_id', 'drb.wid')
+            ->whereIn('drb.driver_id',$driver_ids);
+        $res = $sql->get();
+        return $res;
+    }
+    public function get_driver_notify_id($driver_ids) {
+        return $this->reload_driver_notify_id($driver_ids);
+    }
     public function get_drivers_info($driver_ids) {
         $ids = array_pluck($driver_ids,'driver_id');
         $sql = DB::table('cm_driver_info as di')
