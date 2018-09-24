@@ -59,7 +59,7 @@ class DriverCache{
                     foreach(['timestamp','lat','lng'] as $attr) {
                         $dr[$attr] = $redisLocs[$driver_id][$attr];
                     }
-                    Log::debug('applied new loc for driver:'.$driver_id);
+                    //Log::debug('applied new loc for driver:'.$driver_id);
                 }
             }
         }
@@ -78,7 +78,7 @@ class DriverCache{
         return $drivers;
     }
     public function get_drivers($area) {
-        if (!isset($this->consts['AREA'][$area])) {
+        if ($area!="*" && !isset($this->consts['AREA'][$area])) {
             Log::debug("unknown area code:$area");
             return [];
         }
