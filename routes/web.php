@@ -28,7 +28,7 @@ $router->group(['prefix'=>'api/v1/schedule', 'middleware'=>'auth:custom_token'],
         'test_map', 'learn_map', 'get_map_caseId', 'get_dist_mat',
         'calc_heat_map','get_heat_map','reset_heat_map',
         'modify_driver', 'get_driver_modifiers', 'get_areas',
-        'get_drivers_info', 'debug_call',
+        'get_drivers_info', 'debug_call','single_query',
     ];
     foreach($api_names as $api_name) {
         $router->post('/'.$api_name.'/', ['uses'=>'DebugController@'.$api_name]);

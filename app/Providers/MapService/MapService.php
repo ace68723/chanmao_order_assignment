@@ -98,6 +98,22 @@ class MapService{
     public function learn_map($target_mat) {
         return; //close learn map; learn it in the get_dist_mat call's verify
     }
+    public function single_query($start_loc,$end_loc) {
+        $target_mat[$start_loc][$end_loc] = 1;
+        $caseId = $this->get_caseId();
+        list($dist_mat, $missed_pairs) = CacheMap::get_mat($target_mat);
+        if (empty($missed_pairs)) {
+            CacheMap::extractCase($caseId, $dist_mat, $mileage_mat);
+            $sel_mat[$start_loc][$end_loc] = [$dist_mat[$start_loc][$end_loc], $mileage_mat[$start_loc][$end_loc]];
+            Log::debug(__FUNCTION__.":hit:".json_encode($sel_mat));
+        }
+        else {
+            $sel_mat = GoogleMapProxy::get_gm_mat([$start_loc], [$end_loc]);
+            CacheMap::update_mat($sel_mat,$caseId);
+            Log::debug(__FUNCTION__.":miss:".json_encode($sel_mat));
+        }
+        return $sel_mat;
+    }
     public function get_dist_mat($target_mat) {
         $isHoliday=null;
         $caseId = $this->get_caseId($isHoliday);
