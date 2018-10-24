@@ -120,6 +120,7 @@ class DebugController extends Controller
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_model_cache_service')->get('DriverCache');
         $area = ($la_paras['area_id']<0)? "*":$la_paras['area_id'];
+        $area = "*";
         $ret = $sp->get_drivers($area);
         return $this->format_success_ret($ret);
     }

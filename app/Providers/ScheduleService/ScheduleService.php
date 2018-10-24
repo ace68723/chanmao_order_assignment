@@ -351,7 +351,7 @@ class ScheduleService{
             "Authortoken"=>"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIxMTExOSIsImV4cGlyZWQiOjE1NDE0MDQ4MDAsImV4cGlyZWRfdGltZSI6MTU0MTQwNDgwMCwibGFzdGxvZ2luIjoxNTM1MzkxMTA1fQ.0vDTWQJBzbxKGnDH0XzBapMdnpE-qbI3xQpZQuYg4K8",
         ];
         $curl = app()->make('curl_service');
-        $test_drivers = [6,88];//,31,228];
+        $test_drivers = [88];//,31,228];
         $wid_map = app()->make('cmoa_model_cache_service')->get('DriverCache')->get_driver_notify_id($test_drivers);
         //$wid_map = ['6'=>'238', '88'=>'102'];
         foreach($order_assigns as $oid=>$driver_id) {
