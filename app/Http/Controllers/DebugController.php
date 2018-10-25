@@ -171,8 +171,9 @@ class DebugController extends Controller
         $userObj = null;
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_map_service');
-        $ret = $sp->single_query($la_paras['start_loc'],$la_paras['end_loc']);
-        return $this->format_success_ret($ret);
+        $res = $sp->single_query($la_paras['start_loc'],$la_paras['end_loc']);
+        $tuple = $res[$la_paras['start_loc']][$la_paras['end_loc']] ?? [0,0];
+        return $this->format_success_ret($tuple);
     }
     public function learn_map(Request $request) {
         $userObj = null;
