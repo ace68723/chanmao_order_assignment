@@ -171,7 +171,7 @@ class DebugController extends Controller
         $userObj = null;
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_map_service');
-        $res = $sp->single_query($la_paras['start_loc'],$la_paras['end_loc']);
+        $res = $sp->single_query_real_time($la_paras['start_loc'],$la_paras['end_loc']);
         $tuple = $res[$la_paras['start_loc']][$la_paras['end_loc']] ?? [0,0];
         return $this->format_success_ret($tuple);
     }
