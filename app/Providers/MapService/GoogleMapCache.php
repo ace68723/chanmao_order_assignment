@@ -15,7 +15,8 @@ class GoogleMapCache{
         $cells = CacheMap::ExtLocToCells($start_loc, $end_loc);
         $result = Redis::get($key_prefix.CacheMap::cellsToToken($cells));
         if (empty($result)) return null;
-        return json_decode($result, true);
+        $result = json_decode($result, true);
+        return [$start_loc=>[$end_loc=>$result]];
     }
     static public function update($dudi_mat) {
         $key_prefix = self::PREFIX . "pair:";
