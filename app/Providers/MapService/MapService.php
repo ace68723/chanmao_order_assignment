@@ -125,6 +125,7 @@ class MapService{
         $caseId = $this->get_caseId();
         CacheMap::update_mat($sel_mat,$caseId);
         Log::debug(__FUNCTION__.":miss:".json_encode($sel_mat));
+        return $sel_mat;
     }
     public function get_dist_mat($target_mat) {
         $isHoliday=null;
