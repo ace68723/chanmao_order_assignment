@@ -375,7 +375,7 @@ class CacheMap{
         }
         return [$n, $total_ratio, $total_count, $samples];
     }
-    static private function cellsToToken($cells, $level=self::S2CELL_LEVEL) {
+    static public function cellsToToken($cells, $level=self::S2CELL_LEVEL) {
         $strs = [];
         for($i=0; $i<2; $i++) {
             $strs[$i] = decbin($cells[$i]->id());

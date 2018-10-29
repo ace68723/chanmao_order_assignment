@@ -103,7 +103,7 @@ class MapService{
         $caseId = $this->get_caseId();
         list($dist_mat, $missed_pairs) = CacheMap::get_mat($target_mat);
         if (empty($missed_pairs)) {
-            CacheMap::extractCase($caseId, $dist_mat, $mileage_mat);
+            CacheMap::extractCase($caseId, $dist_mat, $mileage_mat);//note this will change the structure of dist mat
             $sel_mat[$start_loc][$end_loc] = [$dist_mat[$start_loc][$end_loc], $mileage_mat[$start_loc][$end_loc]];
             Log::debug(__FUNCTION__.":hit:".json_encode($sel_mat));
         }
@@ -113,6 +113,18 @@ class MapService{
             Log::debug(__FUNCTION__.":miss:".json_encode($sel_mat));
         }
         return $sel_mat;
+    }
+    public function single_query_real_time($start_loc,$end_loc) {
+        $sel_mat = GoogleMapCache::single_query($start_loc,$end_loc);
+        if (!empty($sel_mat)) {
+            Log::debug(__FUNCTION__.":hit:".json_encode($sel_mat));
+            return $sel_mat;
+        }
+        $sel_mat = GoogleMapProxy::get_gm_mat([$start_loc], [$end_loc]);
+        GoogleMapCache::update($sel_mat);
+        $caseId = $this->get_caseId();
+        CacheMap::update_mat($sel_mat,$caseId);
+        Log::debug(__FUNCTION__.":miss:".json_encode($sel_mat));
     }
     public function get_dist_mat($target_mat) {
         $isHoliday=null;
@@ -175,8 +187,8 @@ class MapService{
         }
         Log::debug(__FUNCTION__.": #missed items=".$nMissed);
         if ($nMissed == 0) return [[], []];
-        $nStart = min(count($starts),3);
-        $nEnd = min(count($ends),4);
+        $nStart = min(count($starts),2);
+        $nEnd = min(count($ends),2);
         $sel_start = $this->my_array_random($starts, $nStart);
         $sel_end = $this->my_array_random($ends, $nEnd);
         $nEle = $this->count_cover($sel_start, $sel_end, $missed_pairs);

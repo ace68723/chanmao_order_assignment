@@ -9,7 +9,7 @@ use App\Providers\MapService\GoogleMapFinalBytes\Response\Element;
 use App\Exceptions\CmException;
 
 class GoogleMapProxy{
-    const  DAILY_QUOTA = 2000;
+    const  DAILY_QUOTA = 2500;
 
     static public function get_quota() : int 
     {
