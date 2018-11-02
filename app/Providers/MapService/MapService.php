@@ -129,17 +129,22 @@ class MapService{
         return $sel_mat;
     }
     public function rr_dlexp_area($rid) {
-        $res = [];
+        $areas = [];
         foreach([0,1,2] as $area_idx) {
             $rr_area = DB::table('cm_rr_loc')->where(['rid' => $rid, 'area' => $area_idx])->first();
-            $res[] = [
+            $areas[] = [
                 [$rr_area->ds_la_nw,$rr_area->ds_lo_nw,],
                 [$rr_area->ds_la_sw,$rr_area->ds_lo_sw,],
                 [$rr_area->ds_la_se,$rr_area->ds_lo_se,],
                 [$rr_area->ds_la_ne,$rr_area->ds_lo_ne,],
             ];
         }
-        return $res;
+        $rr_info = DB::table('cm_rr_loc as rl')
+            ->join('cm_rr_base as rb', 'rb.rid','=','rl.rid')
+            ->where(['rb.rid' => $rid, 'rl.area' => 0])
+            ->select('rb.name','rl.rr_la as lat','rl.rr_lo as lng')
+            ->first();
+        return ['areas'=>$areas, 'rr_info'=>$rr_info];
     }
     public function get_dist_mat($target_mat) {
         $isHoliday=null;
