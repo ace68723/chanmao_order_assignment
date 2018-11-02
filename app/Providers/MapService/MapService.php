@@ -2,6 +2,7 @@
 namespace App\Providers\MapService;
 
 use Log;
+use DB;
 use App\Exceptions\CmException;
 
 class MapService{
