@@ -108,6 +108,9 @@ class DebugController extends Controller
                 'required'=>true,
             ],
         ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
+        $this->consts['REQUEST_PARAS']['rr_dlexp_area'] = [
+            'rid'=>[ 'checker'=>['is_int', ], 'required'=>true, ],
+        ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
 
         if (!$this->check_api_def())
             throw new CmException('SYSTEM_ERROR', "ERROR SETTING IN API SCHEMA");
@@ -174,6 +177,13 @@ class DebugController extends Controller
         $res = $sp->single_query_real_time($la_paras['start_loc'],$la_paras['end_loc']);
         $tuple = $res[$la_paras['start_loc']][$la_paras['end_loc']] ?? [0,0];
         return $this->format_success_ret($tuple);
+    }
+    public function rr_dlexp_area(Request $request) {
+        $userObj = null;
+        $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
+        $sp = app()->make('cmoa_map_service');
+        $res = $sp->rr_dlexp_area($la_paras['rid']);
+        return $this->format_success_ret($res);
     }
     public function learn_map(Request $request) {
         $userObj = null;

@@ -127,6 +127,19 @@ class MapService{
         Log::debug(__FUNCTION__.":miss:".json_encode($sel_mat));
         return $sel_mat;
     }
+    public function rr_dlexp_area($rid) {
+        $res = [];
+        foreach([0,1,2] as $area_idx) {
+            $rr_area = DB::table('cm_rr_loc')->where(['rid' => $rid, 'area' => $area_idx])->first();
+            $res[] = [
+                [$rr_area->ds_la_nw,$rr_area->ds_lo_nw,],
+                [$rr_area->ds_la_sw,$rr_area->ds_lo_sw,],
+                [$rr_area->ds_la_se,$rr_area->ds_lo_se,],
+                [$rr_area->ds_la_ne,$rr_area->ds_lo_ne,],
+            ];
+        }
+        return $res;
+    }
     public function get_dist_mat($target_mat) {
         $isHoliday=null;
         $caseId = $this->get_caseId($isHoliday);
