@@ -99,6 +99,14 @@ class MapService{
     public function learn_map($target_mat) {
         return; //close learn map; learn it in the get_dist_mat call's verify
     }
+    public function single_query_approx($start_loc,$end_loc) {
+        $target_mat[$start_loc][$end_loc] = 1;
+        $caseId = $this->get_caseId();
+        list($dist_mat, $mileage_mat, $missed) = $this->dist_approx_from_cache($target_mat, $caseId);
+        $this->verify($dist_mat,$missed,$caseId);
+        $sel_mat[$start_loc][$end_loc] = [$dist_mat[$start_loc][$end_loc], $mileage_mat[$start_loc][$end_loc]];
+        return $sel_mat;
+    }
     public function single_query_cached($start_loc,$end_loc) {
         $target_mat[$start_loc][$end_loc] = 1;
         $caseId = $this->get_caseId();

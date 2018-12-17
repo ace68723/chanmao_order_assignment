@@ -182,7 +182,7 @@ class DebugController extends Controller
         if ($la_paras['real_time'])
             $res = $sp->single_query_real_time($la_paras['start_loc'],$la_paras['end_loc']);
         else
-            $res = $sp->single_query_cached($la_paras['start_loc'],$la_paras['end_loc']);
+            $res = $sp->single_query_approx($la_paras['start_loc'],$la_paras['end_loc']);
         $tuple = $res[$la_paras['start_loc']][$la_paras['end_loc']] ?? [0,0];
         return $this->format_success_ret($tuple);
     }
