@@ -107,6 +107,11 @@ class DebugController extends Controller
                 'checker'=>['is_string', [3,'inf']],
                 'required'=>true,
             ],
+            'real_time'=>[
+                'checker'=>['is_int', [0,1]],
+                'required'=>false,
+                'default_value'=>1,
+            ],
         ]; // parameter's name MUST NOT start with "_", which are reserved for internal populated parameters
         $this->consts['REQUEST_PARAS']['rr_dlexp_area'] = [
             'rid'=>[ 'checker'=>['is_int', ], 'required'=>true, ],
@@ -174,7 +179,10 @@ class DebugController extends Controller
         $userObj = null;
         $la_paras = $this->parse_parameters($request, __FUNCTION__, $userObj);
         $sp = app()->make('cmoa_map_service');
-        $res = $sp->single_query_real_time($la_paras['start_loc'],$la_paras['end_loc']);
+        if ($la_paras['real_time'])
+            $res = $sp->single_query_real_time($la_paras['start_loc'],$la_paras['end_loc']);
+        else
+            $res = $sp->single_query_cached($la_paras['start_loc'],$la_paras['end_loc']);
         $tuple = $res[$la_paras['start_loc']][$la_paras['end_loc']] ?? [0,0];
         return $this->format_success_ret($tuple);
     }

@@ -99,7 +99,7 @@ class MapService{
     public function learn_map($target_mat) {
         return; //close learn map; learn it in the get_dist_mat call's verify
     }
-    public function single_query($start_loc,$end_loc) {
+    public function single_query_cached($start_loc,$end_loc) {
         $target_mat[$start_loc][$end_loc] = 1;
         $caseId = $this->get_caseId();
         list($dist_mat, $missed_pairs) = CacheMap::get_mat($target_mat);
