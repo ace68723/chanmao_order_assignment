@@ -41,5 +41,13 @@ class AuthServiceProvider extends ServiceProvider
                 'uid'=>$token_info,
             ]);
         });
+        $this->app['auth']->viaRequest('custom_token_cm', function ($request) {
+            $sp = app()->make('user_auth_service');
+            $token_info = $sp->check_token_cm($request->header('Auth-Token'), false);
+            //$token_info = $sp->decode_token($request->header('Auth-Token'));
+            return new GenericUser([
+                'uid'=>$token_info,
+            ]);
+        });
     }
 }
