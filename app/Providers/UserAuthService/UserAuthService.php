@@ -40,7 +40,7 @@ class UserAuthService{
             throw new CmException('INVALID_TOKEN','empty token');
         }
         try {
-            $secret = DB::table('cm_sysparam')->where('param','CM_TOKEN_SECRET')->select('value')->first();
+            $secret = DB::table('cm_sys_param')->where('param','CM_TOKEN_SECRET')->select('value')->first();
             $token_info = JWT::decode($token, $secret->value, array('HS256'));
         }
         catch (Exception $e) {
