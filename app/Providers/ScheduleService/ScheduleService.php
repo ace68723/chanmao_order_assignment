@@ -8,6 +8,7 @@ use App\Exceptions\CmException;
 class ScheduleService{
 
     public $consts;
+    const TEST_DRIVERS=[88];
     public function __construct()
     {
         $this->consts = array();
@@ -27,10 +28,12 @@ class ScheduleService{
         $this->consts['DRIVER_ADVANCE_SEC'] = 60*15; //consider driver available before its scheduled time
         $this->consts['PPTIME'] = [
             'default'=>60*25,
+            '10' => 60*10,
             '< 10' => 60*10,
             '20' => 60*20,
             '30' => 60*30,
-            '> 40' => 60*50,
+            '40' => 60*45,
+            '> 40' => 60*45,
         ];
         $this->consts['EXT_ERROR'] = [
             1 => 'E_EXCEED_MAXN',
@@ -343,19 +346,17 @@ class ScheduleService{
         }
     }
     public function test() {
-        $test_drivers = [6,88,31,228];
-        return app()->make('cmoa_model_cache_service')->get('DriverCache')->get_driver_notify_id($test_drivers);
+        return app()->make('cmoa_model_cache_service')->get('DriverCache')->get_driver_notify_id(self::TEST_DRIVERS);
     }
     private function apply_assigns($order_assigns) {
         $header = [
             "Authortoken"=>"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIxMTExOSIsImV4cGlyZWQiOjE1NDE0MDQ4MDAsImV4cGlyZWRfdGltZSI6MTU0MTQwNDgwMCwibGFzdGxvZ2luIjoxNTM1MzkxMTA1fQ.0vDTWQJBzbxKGnDH0XzBapMdnpE-qbI3xQpZQuYg4K8",
         ];
         $curl = app()->make('curl_service');
-        $test_drivers = [88];//,31,228];
-        $wid_map = app()->make('cmoa_model_cache_service')->get('DriverCache')->get_driver_notify_id($test_drivers);
+        $wid_map = app()->make('cmoa_model_cache_service')->get('DriverCache')->get_driver_notify_id(self::TEST_DRIVERS);
         //$wid_map = ['6'=>'238', '88'=>'102'];
         foreach($order_assigns as $oid=>$driver_id) {
-            if (!in_array($driver_id, $test_drivers)) continue;
+            if (!in_array($driver_id, self::TEST_DRIVERS)) continue;
             $payload = [
                 "oid"=>$oid,
                 "task"=>"assign",
