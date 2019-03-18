@@ -68,7 +68,8 @@ class DriverCache{
         return $drivers;
     }
     public function reload() {
-        $drivers = $this->get_drivers_from_api();
+        //$drivers = $this->get_drivers_from_api();
+        $drivers = $this->get_drivers_from_redis();
         Redis::setex($this->prefix."updatedAt", self::DEBUG_KEEP_SEC, time());
         foreach($drivers as $dr) {
             $key = $this->prefix."dr:".$dr['areaId'].":".$dr['driver_id'];
