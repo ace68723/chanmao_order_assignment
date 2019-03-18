@@ -49,7 +49,7 @@ class DriverCache{
         $redisLocs = $this->get_drivers_from_redis();
         $curTime = time();
         $timer = -microtime(true);
-        $data = do_curl('https://www.chanmao.ca/index.php?r=MobAly10/DriverLoc', 'GET');
+        $data = do_curl('https://www.chanmao.ca/index.php?r=MobAly10/DriverLoc', 'GET'); //get schedule actually
         $drivers = $data['drivers']??[];
         foreach($drivers as &$dr) {
             $dr['areaId'] = $this->consts['AREACODE_MAP'][$dr['area']] ?? -1;
@@ -68,8 +68,7 @@ class DriverCache{
         return $drivers;
     }
     public function reload() {
-        //$drivers = $this->get_drivers_from_api();
-        $drivers = $this->get_drivers_from_redis();
+        $drivers = $this->get_drivers_from_api();
         Redis::setex($this->prefix."updatedAt", self::DEBUG_KEEP_SEC, time());
         foreach($drivers as $dr) {
             $key = $this->prefix."dr:".$dr['areaId'].":".$dr['driver_id'];
