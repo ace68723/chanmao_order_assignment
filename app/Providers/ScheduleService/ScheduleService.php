@@ -8,7 +8,7 @@ use App\Exceptions\CmException;
 class ScheduleService{
 
     public $consts;
-    const TEST_DRIVERS=[88];
+    const TEST_DRIVERS=[6,88];
     public function __construct()
     {
         $this->consts = array();
